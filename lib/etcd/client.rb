@@ -14,6 +14,14 @@ module Etcd
       @http_client = HTTPClient.new
     end
 
+    def set(key, value, options={})
+      body = {:value => value}
+      body[:ttl] = options[:ttl] if options[:ttl]
+      response = @http_client.post(uri(key), body)
+      data = MultiJson.load(response.body)
+      data['prevValue']
+    end
+
     def get(key)
       response = @http_client.get(uri(key))
       if response.status == 200

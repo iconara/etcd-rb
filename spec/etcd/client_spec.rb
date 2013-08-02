@@ -51,5 +51,31 @@ module Etcd
         end
       end
     end
+
+    describe '#set' do
+      before do
+        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+      end
+
+      it 'sends a POST request to set the value' do
+        client.set('foo', 'bar')
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar' }
+      end
+
+      it 'parses the response and returns the previous value' do
+        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevValue' => 'baz'}))
+        client.set('foo', 'bar').should == 'baz'
+      end
+
+      it 'returns nil when there is no previous value' do
+        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+        client.set('foo', 'bar').should be_nil
+      end
+
+      it 'sets a TTL when the :ttl option is given' do
+        client.set('foo', 'bar', ttl: 3)
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar&ttl=3' }
+      end
+    end
   end
 end
