@@ -64,12 +64,12 @@ module Etcd
 
       it 'sends a POST request to set the value for a key' do
         client.set('/foo', 'bar')
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar' }
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar')
       end
 
       it 'prepends a slash to keys when necessary' do
         client.set('foo', 'bar')
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar' }
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar')
       end
 
       it 'parses the response and returns the previous value' do
@@ -84,7 +84,7 @@ module Etcd
 
       it 'sets a TTL when the :ttl option is given' do
         client.set('/foo', 'bar', ttl: 3)
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar&ttl=3' }
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar&ttl=3')
       end
     end
 
