@@ -48,6 +48,10 @@ module Etcd
       end
     end
 
+    def exists?(key)
+      !get(key).nil?
+    end
+
     private
 
     def uri(key, action='keys')

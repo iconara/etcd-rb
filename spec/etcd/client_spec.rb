@@ -98,5 +98,17 @@ module Etcd
         client.delete('foo').should be_nil
       end
     end
+
+    describe '#exists?' do
+      it 'returns true if the key has a value' do
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
+        client.exists?('foo').should be_true
+      end
+
+      it 'returns false if the key does not exist' do
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
+        client.exists?('foo').should be_false
+      end
+    end
   end
 end
