@@ -38,6 +38,18 @@ module Etcd
       end
     end
 
+    def info(key)
+      response = @http_client.get(uri(key))
+      if response.status == 200
+        data = MultiJson.load(response.body)
+        info = extract_info(data)
+        info.delete(:action)
+        info
+      else
+        nil
+      end
+    end
+
     def delete(key)
       response = @http_client.delete(uri(key))
       if response.status == 200
@@ -57,6 +69,17 @@ module Etcd
     def uri(key, action='keys')
       key = "/#{key}" unless key.start_with?('/')
       "http://#{@host}:#{@port}/v1/#{action}#{key}"
+    end
+
+    def extract_info(data)
+      info = {
+        :key => data['key'],
+        :value => data['value'],
+        :index => data['index'],
+      }
+      info[:expiration] = Time.iso8601(data['expiration']) if data['expiration']
+      info[:ttl] = data['ttl'] if data['ttl']
+      info
     end
   end
 end

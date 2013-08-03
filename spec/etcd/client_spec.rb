@@ -110,5 +110,32 @@ module Etcd
         client.exists?('foo').should be_false
       end
     end
+
+    describe '#info' do
+      it 'returns the key, value, previous value, index, expiration and TTL for a key' do
+        body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
+        info = client.info('foo')
+        info[:key].should == '/foo'
+        info[:value].should == 'bar'
+        info[:index].should == 31
+        info[:expiration].to_f.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f
+        info[:ttl].should == 7
+      end
+
+      it 'returns only the pieces of information that are returned' do
+        body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31})
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
+        info = client.info('foo')
+        info[:key].should == '/foo'
+        info[:value].should == 'bar'
+        info[:index].should == 31
+      end
+
+      it 'returns nil when the key does not exist' do
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
+        client.info('foo').should be_nil
+      end
+    end
   end
 end
