@@ -27,17 +27,22 @@ module Etcd
       end
 
       it 'sends a GET request to retrieve the value for a key' do
+        client.get('/foo')
+        WebMock.should have_requested(:get, "#{base_uri}/keys/foo")
+      end
+
+      it 'prepends a slash to keys when necessary' do
         client.get('foo')
         WebMock.should have_requested(:get, "#{base_uri}/keys/foo")
       end
 
       it 'parses the response and returns the value' do
-        client.get('foo').should == 'bar'
+        client.get('/foo').should == 'bar'
       end
 
       it 'returns nil if when the key does not exist' do
         stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
-        client.get('foo').should be_nil
+        client.get('/foo').should be_nil
       end
 
       context 'when listing a prefix' do
@@ -47,7 +52,7 @@ module Etcd
             {'key' => '/foo/baz', 'value' => 'baz'},
           ]
           stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump(values))
-          client.get('foo').should eql({'/foo/bar' => 'bar', '/foo/baz' => 'baz'})
+          client.get('/foo').should eql({'/foo/bar' => 'bar', '/foo/baz' => 'baz'})
         end
       end
     end
@@ -58,22 +63,27 @@ module Etcd
       end
 
       it 'sends a POST request to set the value for a key' do
+        client.set('/foo', 'bar')
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar' }
+      end
+
+      it 'prepends a slash to keys when necessary' do
         client.set('foo', 'bar')
         WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar' }
       end
 
       it 'parses the response and returns the previous value' do
         stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevValue' => 'baz'}))
-        client.set('foo', 'bar').should == 'baz'
+        client.set('/foo', 'bar').should == 'baz'
       end
 
       it 'returns nil when there is no previous value' do
         stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
-        client.set('foo', 'bar').should be_nil
+        client.set('/foo', 'bar').should be_nil
       end
 
       it 'sets a TTL when the :ttl option is given' do
-        client.set('foo', 'bar', ttl: 3)
+        client.set('/foo', 'bar', ttl: 3)
         WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar&ttl=3' }
       end
     end
@@ -84,30 +94,30 @@ module Etcd
       end
 
       it 'sends a DELETE request to remove a key' do
-        client.delete('foo')
+        client.delete('/foo')
         WebMock.should have_requested(:delete, "#{base_uri}/keys/foo")
       end
 
       it 'returns the previous value' do
         stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevValue' => 'bar'}))
-        client.delete('foo').should == 'bar'
+        client.delete('/foo').should == 'bar'
       end
 
       it 'returns nil when there is no previous value' do
         stub_request(:delete, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
-        client.delete('foo').should be_nil
+        client.delete('/foo').should be_nil
       end
     end
 
     describe '#exists?' do
       it 'returns true if the key has a value' do
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
-        client.exists?('foo').should be_true
+        client.exists?('/foo').should be_true
       end
 
       it 'returns false if the key does not exist' do
         stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
-        client.exists?('foo').should be_false
+        client.exists?('/foo').should be_false
       end
     end
 
@@ -115,7 +125,7 @@ module Etcd
       it 'returns the key, value, previous value, index, expiration and TTL for a key' do
         body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
-        info = client.info('foo')
+        info = client.info('/foo')
         info[:key].should == '/foo'
         info[:value].should == 'bar'
         info[:index].should == 31
@@ -126,7 +136,7 @@ module Etcd
       it 'returns only the pieces of information that are returned' do
         body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
-        info = client.info('foo')
+        info = client.info('/foo')
         info[:key].should == '/foo'
         info[:value].should == 'bar'
         info[:index].should == 31
@@ -134,20 +144,20 @@ module Etcd
 
       it 'returns nil when the key does not exist' do
         stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
-        client.info('foo').should be_nil
+        client.info('/foo').should be_nil
       end
     end
 
     describe '#watch' do
       it 'sends a GET request for a watch of a key prefix' do
         stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({}))
-        client.watch('foo') { }
+        client.watch('/foo') { }
         WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {})
       end
 
       it 'sends a GET request for a watch of a key prefix from a specified index' do
         stub_request(:get, "#{base_uri}/watch/foo").with(query: {'index' => 3}).to_return(body: MultiJson.dump({}))
-        client.watch('foo', index: 3) { }
+        client.watch('/foo', index: 3) { }
         WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {'index' => 3})
       end
 
@@ -155,7 +165,7 @@ module Etcd
         body = MultiJson.dump({'value' => 'bar'})
         stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
         value = nil
-        client.watch('foo') do |v|
+        client.watch('/foo') do |v|
           value = v
         end
         value.should == 'bar'
@@ -165,7 +175,7 @@ module Etcd
         body = MultiJson.dump({'key' => '/foo/bar', 'value' => 'bar'})
         stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
         key = nil
-        client.watch('foo') do |_, k|
+        client.watch('/foo') do |_, k|
           key = k
         end
         key.should == '/foo/bar'
@@ -175,7 +185,7 @@ module Etcd
         body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'newKey' => true})
         stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
         info = nil
-        client.watch('foo') do |_, _, i|
+        client.watch('/foo') do |_, _, i|
           info = i
         end
         info[:action].should == :set
@@ -189,7 +199,7 @@ module Etcd
         body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'prevValue' => 'baz', 'index' => 3})
         stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
         info = nil
-        client.watch('foo') do |_, _, i|
+        client.watch('/foo') do |_, _, i|
           info = i
         end
         info[:action].should == :set
@@ -203,7 +213,7 @@ module Etcd
         body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
         stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
         info = nil
-        client.watch('foo') do |_, _, i|
+        client.watch('/foo') do |_, _, i|
           info = i
         end
         info[:action].should == :set
