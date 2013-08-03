@@ -64,6 +64,15 @@ module Etcd
       !get(key).nil?
     end
 
+    def watch(prefix, options={})
+      parameters = {}
+      parameters[:index] = options[:index] if options[:index]
+      response = @http_client.get(uri(prefix, 'watch'), parameters)
+      data = MultiJson.load(response.body)
+      info = extract_info(data)
+      yield info[:value], info[:key], info
+    end
+
     private
 
     def uri(key, action='keys')
@@ -79,6 +88,9 @@ module Etcd
       }
       info[:expiration] = Time.iso8601(data['expiration']) if data['expiration']
       info[:ttl] = data['ttl'] if data['ttl']
+      info[:new_key] = data['newKey'] if data['newKey']
+      info[:previous_value] = data['prevValue'] if data['prevValue']
+      info[:action] = data['action'].downcase.to_sym if data['action']
       info
     end
   end

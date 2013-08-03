@@ -137,5 +137,82 @@ module Etcd
         client.info('foo').should be_nil
       end
     end
+
+    describe '#watch' do
+      it 'sends a GET request for a watch of a key prefix' do
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({}))
+        client.watch('foo') { }
+        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {})
+      end
+
+      it 'sends a GET request for a watch of a key prefix from a specified index' do
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {'index' => 3}).to_return(body: MultiJson.dump({}))
+        client.watch('foo', index: 3) { }
+        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {'index' => 3})
+      end
+
+      it 'yields the value' do
+        body = MultiJson.dump({'value' => 'bar'})
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        value = nil
+        client.watch('foo') do |v|
+          value = v
+        end
+        value.should == 'bar'
+      end
+
+      it 'yields the changed key' do
+        body = MultiJson.dump({'key' => '/foo/bar', 'value' => 'bar'})
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        key = nil
+        client.watch('foo') do |_, k|
+          key = k
+        end
+        key.should == '/foo/bar'
+      end
+
+      it 'yields info about the key, when it is a new key' do
+        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'newKey' => true})
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        info = nil
+        client.watch('foo') do |_, _, i|
+          info = i
+        end
+        info[:action].should == :set
+        info[:key].should == '/foo/bar'
+        info[:value].should == 'bar'
+        info[:index].should == 3
+        info[:new_key].should be_true
+      end
+
+      it 'yields info about the key, when the key was changed' do
+        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'prevValue' => 'baz', 'index' => 3})
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        info = nil
+        client.watch('foo') do |_, _, i|
+          info = i
+        end
+        info[:action].should == :set
+        info[:key].should == '/foo/bar'
+        info[:value].should == 'bar'
+        info[:index].should == 3
+        info[:previous_value].should == 'baz'
+      end
+
+      it 'yields info about the key, when the key has a TTL' do
+        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        info = nil
+        client.watch('foo') do |_, _, i|
+          info = i
+        end
+        info[:action].should == :set
+        info[:key].should == '/foo/bar'
+        info[:value].should == 'bar'
+        info[:index].should == 3
+        info[:expiration].to_f.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f
+        info[:ttl].should == 7
+      end
+    end
   end
 end
