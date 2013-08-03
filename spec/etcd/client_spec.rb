@@ -26,7 +26,7 @@ module Etcd
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
       end
 
-      it 'sends a GET request to retrieve the value' do
+      it 'sends a GET request to retrieve the value for a key' do
         client.get('foo')
         WebMock.should have_requested(:get, "#{base_uri}/keys/foo")
       end
@@ -35,7 +35,7 @@ module Etcd
         client.get('foo').should == 'bar'
       end
 
-      it 'returns nil if when the value does not exist' do
+      it 'returns nil if when the key does not exist' do
         stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
         client.get('foo').should be_nil
       end
@@ -57,7 +57,7 @@ module Etcd
         stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
       end
 
-      it 'sends a POST request to set the value' do
+      it 'sends a POST request to set the value for a key' do
         client.set('foo', 'bar')
         WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar' }
       end
@@ -83,7 +83,7 @@ module Etcd
         stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
       end
 
-      it 'sends a DELETE request to remove the value' do
+      it 'sends a DELETE request to remove a key' do
         client.delete('foo')
         WebMock.should have_requested(:delete, "#{base_uri}/keys/foo")
       end
