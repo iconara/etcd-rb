@@ -24,6 +24,15 @@ module Etcd
       data[S_PREV_VALUE]
     end
 
+    def update(key, value, previous_value, options={})
+      body = {:value => value, :prevValue => previous_value}
+      if ttl = options[:ttl]
+        body[:ttl] = ttl
+      end
+      response = @http_client.post(uri(key), body)
+      response.status == 200
+    end
+
     def get(key)
       response = @http_client.get(uri(key))
       if response.status == 200

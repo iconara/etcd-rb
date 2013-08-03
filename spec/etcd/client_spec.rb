@@ -88,6 +88,32 @@ module Etcd
       end
     end
 
+    describe '#update' do
+      before do
+        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+      end
+
+      it 'sends a POST request to set the value conditionally' do
+        client.update('/foo', 'bar', 'baz')
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar&prevValue=baz')
+      end
+
+      it 'returns true when the key is successfully changed' do
+        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+        client.update('/foo', 'bar', 'baz').should be_true
+      end
+
+      it 'returns false when an error is returned' do
+        stub_request(:post, "#{base_uri}/keys/foo").to_return(status: 400, body: MultiJson.dump({}))
+        client.update('/foo', 'bar', 'baz').should be_false
+      end
+
+      it 'sets a TTL when the :ttl option is given' do
+        client.update('/foo', 'bar', 'baz', ttl: 3)
+        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar&prevValue=baz&ttl=3')
+      end
+    end
+
     describe '#delete' do
       before do
         stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
