@@ -38,6 +38,16 @@ module Etcd
       end
     end
 
+    def delete(key)
+      response = @http_client.delete(uri(key))
+      if response.status == 200
+        data = MultiJson.load(response.body)
+        data['prevValue']
+      else
+        nil
+      end
+    end
+
     private
 
     def uri(key, action='keys')

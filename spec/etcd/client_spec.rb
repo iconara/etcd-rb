@@ -77,5 +77,26 @@ module Etcd
         WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with { |rq| rq.body == 'value=bar&ttl=3' }
       end
     end
+
+    describe '#delete' do
+      before do
+        stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+      end
+
+      it 'sends a DELETE request to remove the value' do
+        client.delete('foo')
+        WebMock.should have_requested(:delete, "#{base_uri}/keys/foo")
+      end
+
+      it 'returns the previous value' do
+        stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevValue' => 'bar'}))
+        client.delete('foo').should == 'bar'
+      end
+
+      it 'returns nil when there is no previous value' do
+        stub_request(:delete, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
+        client.delete('foo').should be_nil
+      end
+    end
   end
 end
