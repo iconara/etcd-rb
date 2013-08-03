@@ -19,7 +19,7 @@ module Etcd
       body[:ttl] = options[:ttl] if options[:ttl]
       response = @http_client.post(uri(key), body)
       data = MultiJson.load(response.body)
-      data['prevValue']
+      data[S_PREV_VALUE]
     end
 
     def get(key)
@@ -28,10 +28,10 @@ module Etcd
         data = MultiJson.load(response.body)
         if data.is_a?(Array)
           data.each_with_object({}) do |e, acc|
-            acc[e['key']] = e['value']
+            acc[e[S_KEY]] = e[S_VALUE]
           end
         else
-          data['value']
+          data[S_VALUE]
         end
       else
         nil
@@ -54,7 +54,7 @@ module Etcd
       response = @http_client.delete(uri(key))
       if response.status == 200
         data = MultiJson.load(response.body)
-        data['prevValue']
+        data[S_PREV_VALUE]
       else
         nil
       end
@@ -67,7 +67,7 @@ module Etcd
     def watch(prefix, options={})
       parameters = {}
       parameters[:index] = options[:index] if options[:index]
-      response = @http_client.get(uri(prefix, 'watch'), parameters)
+      response = @http_client.get(uri(prefix, S_WATCH), parameters)
       data = MultiJson.load(response.body)
       info = extract_info(data)
       yield info[:value], info[:key], info
@@ -75,22 +75,35 @@ module Etcd
 
     private
 
-    def uri(key, action='keys')
-      key = "/#{key}" unless key.start_with?('/')
+    S_KEY = 'key'.freeze
+    S_KEYS = 'keys'.freeze
+    S_VALUE = 'value'.freeze
+    S_INDEX = 'index'.freeze
+    S_EXPIRATION = 'expiration'.freeze
+    S_TTL = 'ttl'.freeze
+    S_NEW_KEY = 'newKey'.freeze
+    S_PREV_VALUE = 'prevValue'.freeze
+    S_ACTION = 'action'.freeze
+    S_WATCH = 'watch'.freeze
+
+    S_SLASH = '/'.freeze
+
+    def uri(key, action=S_KEYS)
+      key = "/#{key}" unless key.start_with?(S_SLASH)
       "http://#{@host}:#{@port}/v1/#{action}#{key}"
     end
 
     def extract_info(data)
       info = {
-        :key => data['key'],
-        :value => data['value'],
-        :index => data['index'],
+        :key => data[S_KEY],
+        :value => data[S_VALUE],
+        :index => data[S_INDEX],
       }
-      info[:expiration] = Time.iso8601(data['expiration']) if data['expiration']
-      info[:ttl] = data['ttl'] if data['ttl']
-      info[:new_key] = data['newKey'] if data['newKey']
-      info[:previous_value] = data['prevValue'] if data['prevValue']
-      info[:action] = data['action'].downcase.to_sym if data['action']
+      info[:expiration] = Time.iso8601(data[S_EXPIRATION]) if data[S_EXPIRATION]
+      info[:ttl] = data[S_TTL] if data[S_TTL]
+      info[:new_key] = data[S_NEW_KEY] if data[S_NEW_KEY]
+      info[:previous_value] = data[S_PREV_VALUE] if data[S_PREV_VALUE]
+      info[:action] = data[S_ACTION].downcase.to_sym if data[S_ACTION]
       info
     end
   end
