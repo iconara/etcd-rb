@@ -1,0 +1,10 @@
+language: ruby
+script: rspec
+bundler_args: --without development
+rvm:
+  - 1.9.3
+  - 2.0.0
+  - jruby-19mode
+  - jruby-head
+jdk:
+  - openjdk7
