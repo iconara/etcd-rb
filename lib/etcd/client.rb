@@ -311,7 +311,7 @@ module Etcd
     end
 
     def machines_uri
-      @leader_uri ||= "http://#{@host}:#{@port}/machines"
+      @machines_uri ||= "http://#{@host}:#{@port}/machines"
     end
 
     def request(method, uri, args={})
