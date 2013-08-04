@@ -250,5 +250,62 @@ module Etcd
         info[:ttl].should == 7
       end
     end
+
+    describe '#observe' do
+      it 'watches the specified key prefix' do
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({}))
+        barrier = Queue.new
+        observer = client.observe('/foo') do
+          barrier << :ping
+          observer.cancel
+          observer.join
+        end
+        barrier.pop
+        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {})
+      end
+
+      it 're-watches the prefix with the last seen index immediately' do
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({'index' => 3}))
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {'index' => 3}).to_return(body: MultiJson.dump({'index' => 4}))
+        barrier = Queue.new
+        observer = client.observe('/foo') do |_, _, info|
+          if info[:index] == 4
+            barrier << :ping
+            observer.cancel
+            observer.join
+          end
+        end
+        barrier.pop
+        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {})
+        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {'index' => 3})
+      end
+
+      it 'yields the value, key and info to the block given' do
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'newKey' => true}))
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {'index' => 3}).to_return(body: MultiJson.dump({'action' => 'DELETE', 'key' => '/foo/baz', 'value' => 'foo', 'index' => 4}))
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {'index' => 4}).to_return(body: MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'hello', 'index' => 5}))
+        barrier = Queue.new
+        values = []
+        keys = []
+        actions = []
+        new_keys = []
+        observer = client.observe('/foo') do |value, key, info|
+          values << value
+          keys << key
+          actions << info[:action]
+          new_keys << info[:new_key]
+          if info[:index] == 5
+            barrier << :ping
+            observer.cancel
+            observer.join
+          end
+        end
+        barrier.pop
+        values.should == %w[bar foo hello]
+        keys.should == %w[/foo/bar /foo/baz /foo/bar]
+        actions.should == [:set, :delete, :set]
+        new_keys.should == [true, nil, nil]
+      end
+    end
   end
 end

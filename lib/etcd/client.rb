@@ -86,6 +86,10 @@ module Etcd
       yield info[:value], info[:key], info
     end
 
+    def observe(prefix, &handler)
+      Observer.new(self, prefix, handler).tap(&:run)
+    end
+
     private
 
     S_KEY = 'key'.freeze
@@ -122,6 +126,41 @@ module Etcd
       info[:previous_value] = previous_value if previous_value
       info[:action] = action_s.downcase.to_sym if action_s
       info
+    end
+
+    class Observer
+      def initialize(client, prefix, handler)
+        @client = client
+        @prefix = prefix
+        @handler = handler
+        @stopped_barrier = Queue.new
+      end
+
+      def run
+        @running = true
+        index = nil
+        Thread.start do
+          begin
+            while @running
+              @client.watch(@prefix, index: index) do |value, key, info|
+                index = info[:index]
+                @handler.call(value, key, info)
+              end
+            end
+          ensure
+            @stopped_barrier << nil
+          end
+        end
+      end
+
+      def cancel
+        @running = false
+        nil
+      end
+
+      def join
+        @stopped_barrier.pop
+      end
     end
   end
 end
