@@ -148,7 +148,7 @@ module Etcd
     end
 
     describe '#info' do
-      it 'returns the key, value, previous value, index, expiration and TTL for a key' do
+      it 'returns the key, value, index, expiration and TTL for a key' do
         body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
