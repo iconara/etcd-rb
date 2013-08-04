@@ -341,5 +341,19 @@ module Etcd
         new_keys.should == [true, nil, nil]
       end
     end
+
+    describe '#leader' do
+      it 'returns the host and port of the leader' do
+        stub_request(:get, "http://#{host}:#{port}/leader").to_return(body: 'localhost:4001')
+        client.leader.should == 'localhost:4001'
+      end
+    end
+
+    describe '#machines' do
+      it 'returns a list of host and ports of the machines in the etcd cluster' do
+        stub_request(:get, "http://#{host}:#{port}/machines").to_return(body: 'host01:4001,host02:4001,host03:4001')
+        client.machines.should == %w[host01:4001 host02:4001 host03:4001]
+      end
+    end
   end
 end

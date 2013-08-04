@@ -268,6 +268,22 @@ module Etcd
       Observer.new(self, prefix, handler).tap(&:run)
     end
 
+    # Returns the host and port of the leader of the `etcd` cluster.
+    #
+    # @return [String] the host and port (e.g. "example.com:4001") of the leader
+    def leader
+      response = @http_client.get(leader_uri)
+      response.body
+    end
+
+    # Returns a list of the machines in the `etcd` cluster.
+    #
+    # @return [Array<String>] the hosts and ports of the machines in the cluster
+    def machines
+      response = @http_client.get(machines_uri)
+      response.body.split(S_COMMA)
+    end
+
     private
 
     S_KEY = 'key'.freeze
@@ -283,10 +299,19 @@ module Etcd
     S_WATCH = 'watch'.freeze
 
     S_SLASH = '/'.freeze
+    S_COMMA = ','.freeze
 
     def uri(key, action=S_KEYS)
       key = "/#{key}" unless key.start_with?(S_SLASH)
       "http://#{@host}:#{@port}/v1/#{action}#{key}"
+    end
+
+    def leader_uri
+      @leader_uri ||= "http://#{@host}:#{@port}/leader"
+    end
+
+    def machines_uri
+      @leader_uri ||= "http://#{@host}:#{@port}/machines"
     end
 
     def extract_info(data)
