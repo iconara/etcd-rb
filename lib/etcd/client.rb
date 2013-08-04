@@ -9,7 +9,7 @@ require 'multi_json'
 module Etcd
   class Client
     def initialize(options={})
-      @host = options[:host] || 'localhost'
+      @host = options[:host] || '127.0.0.1'
       @port = options[:port] || 4001
       @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
     end
