@@ -1,4 +1,4 @@
-# Ruby CQL3 driver
+# Ruby [etcd](https://github.com/coreos/etcd) driver
 
 [![Build Status](https://travis-ci.org/iconara/etcd-rb.png?branch=master)](https://travis-ci.org/iconara/etcd-rb)
 [![Coverage Status](https://coveralls.io/repos/iconara/etcd-rb/badge.png?branch=master)](https://coveralls.io/r/iconara/etcd-rb)
