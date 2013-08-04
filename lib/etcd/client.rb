@@ -156,6 +156,7 @@ module Etcd
             end
           end
         end
+        self
       end
 
       def cancel
