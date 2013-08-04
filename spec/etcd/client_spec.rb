@@ -274,6 +274,15 @@ module Etcd
         info[:expiration].to_f.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f
         info[:ttl].should == 7
       end
+
+      it 'returns the return value of the block' do
+        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
+        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        return_value = client.watch('/foo') do |_, k, _|
+          k
+        end
+        return_value.should == '/foo/bar'
+      end
     end
 
     describe '#observe' do
