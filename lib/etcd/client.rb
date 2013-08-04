@@ -143,22 +143,17 @@ module Etcd
         @client = client
         @prefix = prefix
         @handler = handler
-        @stopped_barrier = Queue.new
       end
 
       def run
         @running = true
         index = nil
-        Thread.start do
-          begin
-            while @running
-              @client.watch(@prefix, index: index) do |value, key, info|
-                index = info[:index]
-                @handler.call(value, key, info)
-              end
+        @thread = Thread.start do
+          while @running
+            @client.watch(@prefix, index: index) do |value, key, info|
+              index = info[:index]
+              @handler.call(value, key, info)
             end
-          ensure
-            @stopped_barrier << nil
           end
         end
       end
@@ -169,7 +164,8 @@ module Etcd
       end
 
       def join
-        @stopped_barrier.pop
+        @thread.join
+        nil
       end
     end
   end
