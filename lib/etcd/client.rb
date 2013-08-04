@@ -163,12 +163,12 @@ module Etcd
 
       def cancel
         @running = false
-        nil
+        self
       end
 
       def join
         @thread.join
-        nil
+        self
       end
     end
   end
