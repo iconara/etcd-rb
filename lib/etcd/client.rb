@@ -99,6 +99,7 @@ module Etcd
     S_EXPIRATION = 'expiration'.freeze
     S_TTL = 'ttl'.freeze
     S_NEW_KEY = 'newKey'.freeze
+    S_DIR = 'dir'.freeze
     S_PREV_VALUE = 'prevValue'.freeze
     S_ACTION = 'action'.freeze
     S_WATCH = 'watch'.freeze
@@ -123,6 +124,7 @@ module Etcd
       info[:expiration] = Time.iso8601(expiration_s) if expiration_s
       info[:ttl] = ttl if ttl
       info[:new_key] = data[S_NEW_KEY] if data.include?(S_NEW_KEY)
+      info[:dir] = data[S_DIR] if data.include?(S_DIR)
       info[:previous_value] = previous_value if previous_value
       info[:action] = action_s.downcase.to_sym if action_s
       info

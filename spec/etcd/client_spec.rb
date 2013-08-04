@@ -159,6 +159,14 @@ module Etcd
         info[:ttl].should == 7
       end
 
+      it 'returns the dir flag' do
+        body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'dir' => true})
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
+        info = client.info('/foo')
+        info[:key].should == '/foo'
+        info[:dir].should be_true
+      end
+
       it 'returns only the pieces of information that are returned' do
         body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
