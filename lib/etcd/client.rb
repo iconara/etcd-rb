@@ -53,9 +53,17 @@ module Etcd
       response = @http_client.get(uri(key))
       if response.status == 200
         data = MultiJson.load(response.body)
-        info = extract_info(data)
-        info.delete(:action)
-        info
+        if data.is_a?(Array)
+          data.each_with_object({}) do |d, acc|
+            info = extract_info(d)
+            info.delete(:action)
+            acc[info[:key]] = info
+          end
+        else
+          info = extract_info(data)
+          info.delete(:action)
+          info
+        end
       else
         nil
       end

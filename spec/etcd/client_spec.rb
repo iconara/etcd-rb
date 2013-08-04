@@ -180,6 +180,23 @@ module Etcd
         stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
         client.info('/foo').should be_nil
       end
+
+      context 'when listing a prefix' do
+        it 'returns a hash of keys and their info' do
+          body = MultiJson.dump([
+            {'action' => 'GET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 31},
+            {'action' => 'GET', 'key' => '/foo/baz', 'value' => 'baz', 'index' => 55},
+          ])
+          stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
+          info = client.info('/foo')
+          info['/foo/bar'][:key].should == '/foo/bar'
+          info['/foo/baz'][:key].should == '/foo/baz'
+          info['/foo/bar'][:value].should == 'bar'
+          info['/foo/baz'][:value].should == 'baz'
+          info['/foo/bar'][:index].should == 31
+          info['/foo/baz'][:index].should == 55
+        end
+      end
     end
 
     describe '#watch' do
