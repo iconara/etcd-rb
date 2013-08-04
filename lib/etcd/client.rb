@@ -11,7 +11,7 @@ module Etcd
     def initialize(options={})
       @host = options[:host] || 'localhost'
       @port = options[:port] || 4001
-      @http_client = HTTPClient.new
+      @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
     end
 
     def set(key, value, options={})
