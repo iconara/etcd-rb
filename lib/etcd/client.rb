@@ -84,7 +84,7 @@ module Etcd
       if ttl = options[:ttl]
         body[:ttl] = ttl
       end
-      response = @http_client.post(uri(key), body)
+      response = request(:post, uri(key), body: body)
       data = MultiJson.load(response.body)
       data[S_PREV_VALUE]
     end
@@ -110,7 +110,7 @@ module Etcd
       if ttl = options[:ttl]
         body[:ttl] = ttl
       end
-      response = @http_client.post(uri(key), body)
+      response = request(:post, uri(key), body: body)
       response.status == 200
     end
 
@@ -123,7 +123,7 @@ module Etcd
     # @return [String, Hash] the value for the key, or a hash of keys and values
     #   when the key is a prefix.
     def get(key)
-      response = @http_client.get(uri(key))
+      response = request(:get, uri(key))
       if response.status == 200
         data = MultiJson.load(response.body)
         if data.is_a?(Array)
@@ -154,7 +154,7 @@ module Etcd
     # @return [Hash] a with info about the key, the exact contents depend on
     #   what kind of key it is.
     def info(key)
-      response = @http_client.get(uri(key))
+      response = request(:get, uri(key))
       if response.status == 200
         data = MultiJson.load(response.body)
         if data.is_a?(Array)
@@ -180,7 +180,7 @@ module Etcd
     # @param key [String] the key to remove
     # @return [String] the previous value, if any
     def delete(key)
-      response = @http_client.delete(uri(key))
+      response = request(:delete, uri(key))
       if response.status == 200
         data = MultiJson.load(response.body)
         data[S_PREV_VALUE]
@@ -228,7 +228,7 @@ module Etcd
       if index = options[:index]
         parameters[:index] = index
       end
-      response = @http_client.get(uri(prefix, S_WATCH), parameters)
+      response = request(:get, uri(prefix, S_WATCH), query: parameters)
       data = MultiJson.load(response.body)
       info = extract_info(data)
       yield info[:value], info[:key], info
@@ -272,7 +272,7 @@ module Etcd
     #
     # @return [String] the host and port (e.g. "example.com:4001") of the leader
     def leader
-      response = @http_client.get(leader_uri)
+      response = request(:get, leader_uri)
       response.body
     end
 
@@ -280,7 +280,7 @@ module Etcd
     #
     # @return [Array<String>] the hosts and ports of the machines in the cluster
     def machines
-      response = @http_client.get(machines_uri)
+      response = request(:get, machines_uri)
       response.body.split(S_COMMA)
     end
 
@@ -312,6 +312,10 @@ module Etcd
 
     def machines_uri
       @leader_uri ||= "http://#{@host}:#{@port}/machines"
+    end
+
+    def request(method, uri, args={})
+      @http_client.request(method, uri, args.merge(follow_redirect: true))
     end
 
     def extract_info(data)

@@ -55,6 +55,14 @@ module Etcd
           client.get('/foo').should eql({'/foo/bar' => 'bar', '/foo/baz' => 'baz'})
         end
       end
+
+      context 'when not talking to the master' do
+        it 'follows redirects' do
+          stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 307, headers: {'Location' => 'http://example.com:7654/v1/keys/foo'})
+          stub_request(:get, 'http://example.com:7654/v1/keys/foo').to_return(body: MultiJson.dump({'value' => 'bar'}))
+          client.get('/foo').should == 'bar'
+        end
+      end
     end
 
     describe '#set' do
