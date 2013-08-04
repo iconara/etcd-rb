@@ -151,8 +151,10 @@ module Etcd
         @thread = Thread.start do
           while @running
             @client.watch(@prefix, index: index) do |value, key, info|
-              index = info[:index]
-              @handler.call(value, key, info)
+              if @running
+                index = info[:index]
+                @handler.call(value, key, info)
+              end
             end
           end
         end
