@@ -59,6 +59,18 @@ module Etcd
   class Client
     # Creates a new `etcd` client.
     #
+    # You should call {#connect} on the client to properly initialize it. The
+    # creation of the client and connection is divided into two parts to avoid
+    # doing network connections in the object initialization code. Many times
+    # you want to defer things with side-effect until the whole object graph
+    # has been created. {#connect} returns self so you can just chain it after
+    # the call to {.new}, e.g. `Client.new.connect`.
+    #
+    # You can specify a seed node to connect to using the `:host` and `:port`
+    # options (which default to 127.0.0.1:4001), but once connected the client
+    # will prefer to talk to the master in order to avoid unnecessary HTTP
+    # requests, and to make sure that get operations find the most recent value.
+    #
     # @param [Hash] options
     # @option options [String] :host ('127.0.0.1') The etcd host to connect to
     # @option options [String] :port (4001) The port to connect to
@@ -66,6 +78,16 @@ module Etcd
       @host = options[:host] || '127.0.0.1'
       @port = options[:port] || 4001
       @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
+    end
+
+    def connect
+      @machines = machines
+      @leader = leader
+      @host, port = @leader.split(':')
+      @port = port.to_i
+      self
+    rescue HTTPClient::TimeoutError => e
+      raise ConnectionError, e.message, e.backtrace
     end
 
     # Sets the value of a key.

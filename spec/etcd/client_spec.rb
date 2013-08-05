@@ -6,7 +6,7 @@ require 'spec_helper'
 module Etcd
   describe Client do
     let :client do
-      described_class.new(host: host, port: port)
+      described_class.new(host: host, port: port).connect
     end
 
     let :host do
@@ -19,6 +19,39 @@ module Etcd
 
     let :base_uri do
       "http://#{host}:#{port}/v1"
+    end
+
+    let :machines_uri do
+      "http://#{host}:#{port}/machines"
+    end
+
+    let :leader_uri do
+      "http://#{host}:#{port}/leader"
+    end
+
+    before do
+      stub_request(:get, machines_uri).to_return(body: "#{host}:#{port},#{host}:#{port + 3},#{host}:#{port + 2}")
+      stub_request(:get, leader_uri).to_return(body: "#{host}:#{port}")
+    end
+
+    describe '#connect' do
+      it 'gets the list of machines and the leader' do
+        client
+        WebMock.should have_requested(:get, machines_uri)
+        WebMock.should have_requested(:get, leader_uri)
+      end
+
+      it 'raises an error when the seed node cannot be contacted' do
+        stub_request(:get, machines_uri).to_timeout
+        expect { client }.to raise_error(ConnectionError)
+      end
+
+      it 'discards the seed node and instead talks to the leader' do
+        stub_request(:get, leader_uri).to_return(body: "#{host}:#{port + 1}")
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'wrong value'}))
+        stub_request(:get, "#{base_uri.sub(port.to_s, (port + 1).to_s)}/keys/foo").to_return(body: MultiJson.dump({'value' => 'right value'}))
+        client.get('/foo').should == 'right value'
+      end
     end
 
     describe '#get' do
@@ -352,14 +385,14 @@ module Etcd
 
     describe '#leader' do
       it 'returns the host and port of the leader' do
-        stub_request(:get, "http://#{host}:#{port}/leader").to_return(body: 'localhost:4001')
+        stub_request(:get, leader_uri).to_return(body: 'localhost:4001')
         client.leader.should == 'localhost:4001'
       end
     end
 
     describe '#machines' do
       it 'returns a list of host and ports of the machines in the etcd cluster' do
-        stub_request(:get, "http://#{host}:#{port}/machines").to_return(body: 'host01:4001,host02:4001,host03:4001')
+        stub_request(:get, machines_uri).to_return(body: 'host01:4001,host02:4001,host03:4001')
         client.machines.should == %w[host01:4001 host02:4001 host03:4001]
       end
     end
