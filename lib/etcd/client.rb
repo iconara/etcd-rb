@@ -78,6 +78,7 @@ module Etcd
       @host = options[:host] || '127.0.0.1'
       @port = options[:port] || 4001
       @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
+      @http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
     def connect
@@ -319,6 +320,7 @@ module Etcd
     S_PREV_VALUE = 'prevValue'.freeze
     S_ACTION = 'action'.freeze
     S_WATCH = 'watch'.freeze
+    S_LOCATION = 'location'.freeze
 
     S_SLASH = '/'.freeze
     S_COMMA = ','.freeze
@@ -357,6 +359,13 @@ module Etcd
       info[:previous_value] = previous_value if previous_value
       info[:action] = action_s.downcase.to_sym if action_s
       info
+    end
+
+    def handle_redirected(uri, response)
+      location = URI.parse(response.header[S_LOCATION][0])
+      @host = location.host
+      @port = location.port
+      @http_client.default_redirect_uri_callback(uri, response)
     end
 
     # @private
