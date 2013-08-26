@@ -96,7 +96,7 @@ module Etcd
           client.get('/foo').should == 'bar'
         end
 
-        it 'sets the host to the new leader when it is redirected' do
+        it 'sets the new host as the new leader when it is redirected' do
           stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 307, headers: {'Location' => 'http://example.com:7654/v1/keys/foo'})
           stub_request(:get, 'http://example.com:7654/v1/keys/foo').to_return(body: MultiJson.dump({'value' => 'bar'}))
           client.get('/foo')
