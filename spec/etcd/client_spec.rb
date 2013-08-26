@@ -29,8 +29,12 @@ module Etcd
       "http://#{host}:#{port}/leader"
     end
 
+    let :machines do
+      %W[#{host}:#{port} #{host}:#{port + 2} #{host}:#{port + 1}]
+    end
+
     before do
-      stub_request(:get, machines_uri).to_return(body: "#{host}:#{port},#{host}:#{port + 3},#{host}:#{port + 2}")
+      stub_request(:get, machines_uri).to_return(body: machines.join(','))
       stub_request(:get, leader_uri).to_return(body: "#{host}:#{port}")
     end
 
@@ -102,6 +106,42 @@ module Etcd
           client.get('/foo')
           client.get('/foo').should == 'bar'
           WebMock.should have_requested(:get, "#{base_uri}/keys/foo").once
+        end
+      end
+
+      context 'when nodes go down' do
+        let :uris do
+          machines.map { |m| "http://#{m}/v1/keys/thing" }
+        end
+
+        it 'tries with another node when the leader appears to be down' do
+          stub_request(:get, uris[0]).to_timeout
+          stub_request(:get, uris[1]).to_return(body: MultiJson.dump({'value' => 'bar'}))
+          stub_request(:get, uris[2]).to_return(body: MultiJson.dump({'value' => 'bar'}))
+          client.get('/thing').should == 'bar'
+        end
+
+        it 'tries other nodes until it finds one that responds' do
+          stub_request(:get, uris[0]).to_timeout
+          stub_request(:get, uris[1]).to_timeout
+          stub_request(:get, uris[2]).to_return(body: MultiJson.dump({'value' => 'bar'}))
+          client.get('/thing').should == 'bar'
+        end
+
+        it 'follows redirects when trying a node after a leader failure, and saves the new leader' do
+          stub_request(:get, uris[0]).to_timeout
+          stub_request(:get, uris[1]).to_return(status: 307, headers: {'Location' => uris[2]})
+          stub_request(:get, uris[2]).to_return(body: MultiJson.dump({'value' => 'bar'}))
+          stub_request(:get, uris[2].sub('/thing', '/bar')).to_return(body: MultiJson.dump({'value' => 'baz'}))
+          client.get('/thing').should == 'bar'
+          client.get('/bar').should == 'baz'
+        end
+
+        it 'raises an error when all leader candidates have been exhausted' do
+          stub_request(:get, uris[0]).to_timeout
+          stub_request(:get, uris[1]).to_timeout
+          stub_request(:get, uris[2]).to_timeout
+          expect { client.get('/thing') }.to raise_error(AllNodesDownError)
         end
       end
     end
