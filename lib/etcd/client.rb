@@ -82,7 +82,6 @@ module Etcd
     end
 
     def connect
-      @machines = machines
       change_leader(leader)
       self
     rescue AllNodesDownError => e
@@ -339,9 +338,9 @@ module Etcd
     def request(method, uri, args={})
       @http_client.request(method, uri, args.merge(follow_redirect: true))
     rescue HTTPClient::TimeoutError => e
-      old_leader, old_port = @leader, @port
+      old_leader, old_port = @host, @port
       handle_leader_down
-      uri.sub!("#{old_leader}:#{old_port}", "#{@leader}:#{@port}")
+      uri.sub!("#{old_leader}:#{old_port}", "#{@host}:#{@port}")
       retry
     end
 
@@ -366,25 +365,30 @@ module Etcd
 
     def handle_redirected(uri, response)
       location = URI.parse(response.header[S_LOCATION][0])
-      change_leader(location.host, location.port)
+      change_leader(location.host, port: location.port)
       @http_client.default_redirect_uri_callback(uri, response)
     end
 
     def handle_leader_down
       if @machines && @machines.any?
-        @machines = @machines.reject { |m| m == @leader }
-        change_leader(@machines.shift)
+        @machines = @machines.reject { |m| m == @host }
+        change_leader(@machines.shift, flush_cache: false)
       else
         raise AllNodesDownError, 'All known nodes are down'
       end
     end
 
-    def change_leader(new_leader, port=nil)
-      if port
-        @leader, @port = new_leader, port
+    def change_leader(new_leader, options={})
+      if options[:port]
+        @host, @port = new_leader, options[:port]
       else
-        @leader, port = new_leader.split(':')
+        @host, port = new_leader.split(':')
         @port = port.to_i
+      end
+      @leader_uri = nil
+      @machines_uri = nil
+      if options[:flush_cache] != false
+        @machines = machines
       end
     end
 
