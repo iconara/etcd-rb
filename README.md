@@ -23,7 +23,7 @@ client.set('/foo', 'bar')
 client.get('/foo')
 ```
 
-See the full [API documentation](http://rubydoc.info/gems/etcd-rb/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
+See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/master/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
 
 # Features
 
