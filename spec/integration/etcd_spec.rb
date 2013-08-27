@@ -24,7 +24,7 @@ describe 'A etcd client' do
   before do
     begin
       open("#{ENV['ETCD_URI']}/v1/leader").read
-    rescue Errno::ECONNREFUSED
+    rescue Errno::ECONNREFUSED, Errno::ENOENT
       pending('etcd not running, start it with `./spec/resources/etcd-cluster start`')
     end
   end
