@@ -7,6 +7,8 @@
 
 A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
 
+An etcd cluster. _Currently incompatible with the most recent versions of etcd because they return the wrong URI for the leader._
+
 # Installation
 
     gem install etcd-rb --prerelease
