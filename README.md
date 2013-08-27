@@ -23,6 +23,24 @@ client.get('/foo')
 
 See the full [API documentation](http://rubydoc.info/gems/etcd-rb/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
 
+# Features
+
+## Continuous watches: observers
+
+Most of the time when you use watches with etcd you want to immediately re-watch the key when you get a change notification. The `Client#observe` method handles this for you, including re-watching with the last seen index, so that you don't miss any updates.
+
+## Automatic leader detection
+
+You can point the client to any node in the etcd cluster, it will ask that node for the current leader and direct all subsequent requests directly to the leader to avoid unnecessary redirects. When the leader changes, detected by a redirect, the new leader will be registered and used instead of the previous.
+
+## Automacic failover & retry
+
+When connecting for the first time, and when the leader changes, the list of nodes in the cluster is cached. Should the node that the client is talking to become unreachable, the client will attempt to connect to the next known node, until it finds one that responds. The first node to respond will be asked for the current leader, which will then be used for subsequent request.
+
+This is handled completely transparently to you.
+
+Watches are a special case, since they use long polling, they will break when the leader goes down. Observers will attempt to reestablish their watches with the new leader.
+
 # Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/iconara/etcd-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
