@@ -83,8 +83,8 @@ module Etcd
 
     def connect
       change_uris(@seed_uri)
-      change_uris(leader)
       cache_machines
+      change_uris(@machines_cache.first)
       self
     rescue AllNodesDownError => e
       raise ConnectionError, e.message, e.backtrace
@@ -290,17 +290,11 @@ module Etcd
       Observer.new(self, prefix, handler).tap(&:run)
     end
 
-    # Returns the host and port of the leader of the `etcd` cluster.
+    # Returns a list of URIs for the machines in the `etcd` cluster.
     #
-    # @return [String] the host and port (e.g. "example.com:4001") of the leader
-    def leader
-      response = request(:get, @leader_uri)
-      response.body
-    end
-
-    # Returns a list of the machines in the `etcd` cluster.
+    # The first URI is for the leader.
     #
-    # @return [Array<String>] the hosts and ports of the machines in the cluster
+    # @return [Array<String>] the URIs of the machines in the cluster
     def machines
       response = request(:get, @machines_uri)
       response.body.split(MACHINES_SEPARATOR_RE)
@@ -365,22 +359,22 @@ module Etcd
     end
 
     def handle_leader_down
-      if @machines && @machines.any?
-        @machines = @machines.reject { |m| m == @host }
-        change_uris(@machines.shift)
+      if @machines_cache && @machines_cache.any?
+        @machines_cache.reject! { |m| @base_uri.include?(m) }
+        change_uris(@machines_cache.shift)
       else
         raise AllNodesDownError, 'All known nodes are down'
       end
+    end
+
+    def cache_machines
+      @machines_cache = machines
     end
 
     def change_uris(leader_uri, options={})
       @base_uri = "#{leader_uri}/#{@protocol_version}"
       @leader_uri = "#{@base_uri}/leader"
       @machines_uri = "#{@base_uri}/machines"
-    end
-
-    def cache_machines
-      @machines = machines
     end
 
     # @private
