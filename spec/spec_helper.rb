@@ -18,7 +18,7 @@ unless ENV['COVERAGE'] == 'no'
   end
 end
 
-ENV['ETCD_URI'] ||= '127.0.0.1:4001'
+ENV['ETCD_URI'] ||= 'http://127.0.0.1:4001'
 
 require 'webmock/rspec'
 require 'etcd'
