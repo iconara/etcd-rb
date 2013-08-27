@@ -31,7 +31,7 @@ describe 'A etcd client' do
 
   before do
     begin
-      open("http://#{host}:#{port}/").read
+      open("http://#{host}:#{port}/v1/leader").read
     rescue Errno::ECONNREFUSED
       fail('etcd not running, start it with `./spec/resources/etcd-cluster start`')
     end

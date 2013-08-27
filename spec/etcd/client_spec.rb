@@ -22,20 +22,20 @@ module Etcd
     end
 
     let :machines_uri do
-      "http://#{host}:#{port}/machines"
+      "http://#{host}:#{port}/v1/machines"
     end
 
     let :leader_uri do
-      "http://#{host}:#{port}/leader"
+      "http://#{host}:#{port}/v1/leader"
     end
 
     let :machines do
-      %W[#{host}:#{port} #{host}:#{port + 2} #{host}:#{port + 1}]
+      %W[http://#{host}:#{port} http://#{host}:#{port + 2} http://#{host}:#{port + 1}]
     end
 
     before do
-      stub_request(:get, leader_uri).to_return(body: "#{host}:#{port}")
-      stub_request(:get, machines_uri).to_return(body: machines.join(','))
+      stub_request(:get, leader_uri).to_return(body: "http://#{host}:#{port}")
+      stub_request(:get, machines_uri).to_return(body: machines.join(', '))
     end
 
     describe '#connect' do
@@ -51,8 +51,8 @@ module Etcd
       end
 
       it 'discards the seed node and instead talks to the leader' do
-        stub_request(:get, leader_uri).to_return(body: "#{host}:#{port + 1}")
-        stub_request(:get, "http://#{host}:#{port + 1}/machines").to_return(body: machines.join(','))
+        stub_request(:get, leader_uri).to_return(body: "http://#{host}:#{port + 1}")
+        stub_request(:get, "http://#{host}:#{port + 1}/v1/machines").to_return(body: machines.join(','))
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'wrong value'}))
         stub_request(:get, "#{base_uri.sub(port.to_s, (port + 1).to_s)}/keys/foo").to_return(body: MultiJson.dump({'value' => 'right value'}))
         client.get('/foo').should == 'right value'
@@ -97,7 +97,7 @@ module Etcd
       context 'when not talking to the master' do
         before do
           stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 307, headers: {'Location' => 'http://example.com:7654/v1/keys/foo'})
-          stub_request(:get, 'http://example.com:7654/machines').to_return(body: %w[example.com:7654 example.com:7655].join(','))
+          stub_request(:get, 'http://example.com:7654/v1/machines').to_return(body: %w[http://example.com:7654 http://example.com:7655].join(', '))
           stub_request(:get, 'http://example.com:7654/v1/keys/foo').to_return(body: MultiJson.dump({'value' => 'bar'}))
         end
 
@@ -113,13 +113,13 @@ module Etcd
 
         it 'asks for a new list of cluster machines' do
           client.get('/foo')
-          WebMock.should have_requested(:get, 'http://example.com:7654/machines').once
+          WebMock.should have_requested(:get, 'http://example.com:7654/v1/machines').once
         end
       end
 
       context 'when nodes go down' do
         let :uris do
-          machines.map { |m| "http://#{m}/v1/keys/thing" }
+          machines.map { |m| "#{m}/v1/keys/thing" }
         end
 
         it 'tries with another node when the leader appears to be down' do
@@ -140,7 +140,7 @@ module Etcd
           stub_request(:get, uris[0]).to_timeout
           stub_request(:get, uris[1]).to_return(status: 307, headers: {'Location' => uris[2]})
           stub_request(:get, uris[2]).to_return(body: MultiJson.dump({'value' => 'bar'}))
-          stub_request(:get, uris[2].sub('/v1/keys/thing', '/machines')).to_return(body: [uris[1], uris[2]].join(','))
+          stub_request(:get, uris[2].sub('/keys/thing', '/machines')).to_return(body: [uris[1], uris[2]].join(', '))
           stub_request(:get, uris[2].sub('/thing', '/bar')).to_return(body: MultiJson.dump({'value' => 'baz'}))
           client.get('/thing').should == 'bar'
           client.get('/bar').should == 'baz'
@@ -442,20 +442,20 @@ module Etcd
 
     describe '#leader' do
       before do
-        stub_request(:get, 'http://localhost:4001/leader').to_return(body: 'localhost:4001')
-        stub_request(:get, 'http://localhost:4001/machines').to_return(body: 'localhost:4001,localhost:4002')
+        stub_request(:get, 'http://localhost:4001/v1/leader').to_return(body: 'http://localhost:4001')
+        stub_request(:get, 'http://localhost:4001/v1/machines').to_return(body: 'http://localhost:4001, http://localhost:4002')
       end
 
       it 'returns the host and port of the leader' do
-        stub_request(:get, leader_uri).to_return(body: 'localhost:4001')
-        client.leader.should == 'localhost:4001'
+        stub_request(:get, leader_uri).to_return(body: 'http://localhost:4001')
+        client.leader.should == 'http://localhost:4001'
       end
     end
 
     describe '#machines' do
       it 'returns a list of host and ports of the machines in the etcd cluster' do
-        stub_request(:get, machines_uri).to_return(body: 'host01:4001,host02:4001,host03:4001')
-        client.machines.should == %w[host01:4001 host02:4001 host03:4001]
+        stub_request(:get, machines_uri).to_return(body: 'http://host01:4001, http://host02:4001, http://host03:4001')
+        client.machines.should == %w[http://host01:4001 http://host02:4001 http://host03:4001]
       end
     end
   end

@@ -77,12 +77,15 @@ module Etcd
     def initialize(options={})
       @host = options[:host] || '127.0.0.1'
       @port = options[:port] || 4001
+      @protocol_version = 'v1'
       @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
       @http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
     def connect
-      change_leader(leader)
+      change_uris("http://#{@host}:#{@port}")
+      change_uris(leader)
+      cache_machines
       self
     rescue AllNodesDownError => e
       raise ConnectionError, e.message, e.backtrace
@@ -292,7 +295,7 @@ module Etcd
     #
     # @return [String] the host and port (e.g. "example.com:4001") of the leader
     def leader
-      response = request(:get, leader_uri)
+      response = request(:get, @leader_uri)
       response.body
     end
 
@@ -300,8 +303,8 @@ module Etcd
     #
     # @return [Array<String>] the hosts and ports of the machines in the cluster
     def machines
-      response = request(:get, machines_uri)
-      response.body.split(S_COMMA)
+      response = request(:get, @machines_uri)
+      response.body.split(MACHINES_SEPARATOR_RE)
     end
 
     private
@@ -320,27 +323,19 @@ module Etcd
     S_LOCATION = 'location'.freeze
 
     S_SLASH = '/'.freeze
-    S_COMMA = ','.freeze
+    MACHINES_SEPARATOR_RE = /,\s*/
 
     def uri(key, action=S_KEYS)
       key = "/#{key}" unless key.start_with?(S_SLASH)
-      "http://#{@host}:#{@port}/v1/#{action}#{key}"
-    end
-
-    def leader_uri
-      @leader_uri ||= "http://#{@host}:#{@port}/leader"
-    end
-
-    def machines_uri
-      @machines_uri ||= "http://#{@host}:#{@port}/machines"
+      "#{@base_uri}/#{action}#{key}"
     end
 
     def request(method, uri, args={})
       @http_client.request(method, uri, args.merge(follow_redirect: true))
     rescue HTTPClient::TimeoutError => e
-      old_leader, old_port = @host, @port
+      old_base_uri = @base_uri
       handle_leader_down
-      uri.sub!("#{old_leader}:#{old_port}", "#{@host}:#{@port}")
+      uri.sub!(old_base_uri, @base_uri)
       retry
     end
 
@@ -365,31 +360,28 @@ module Etcd
 
     def handle_redirected(uri, response)
       location = URI.parse(response.header[S_LOCATION][0])
-      change_leader(location.host, port: location.port)
+      change_uris("#{location.scheme}://#{location.host}:#{location.port}")
+      cache_machines
       @http_client.default_redirect_uri_callback(uri, response)
     end
 
     def handle_leader_down
       if @machines && @machines.any?
         @machines = @machines.reject { |m| m == @host }
-        change_leader(@machines.shift, flush_cache: false)
+        change_uris(@machines.shift)
       else
         raise AllNodesDownError, 'All known nodes are down'
       end
     end
 
-    def change_leader(new_leader, options={})
-      if options[:port]
-        @host, @port = new_leader, options[:port]
-      else
-        @host, port = new_leader.split(':')
-        @port = port.to_i
-      end
-      @leader_uri = nil
-      @machines_uri = nil
-      if options[:flush_cache] != false
-        @machines = machines
-      end
+    def change_uris(leader_uri, options={})
+      @base_uri = "#{leader_uri}/#{@protocol_version}"
+      @leader_uri = "#{@base_uri}/leader"
+      @machines_uri = "#{@base_uri}/machines"
+    end
+
+    def cache_machines
+      @machines = machines
     end
 
     # @private
