@@ -18,8 +18,7 @@ unless ENV['COVERAGE'] == 'no'
   end
 end
 
-ENV['ETCD_HOST'] ||= '127.0.0.1'
-ENV['ETCD_PORT'] ||= '4001'
+ENV['ETCD_URI'] ||= '127.0.0.1:4001'
 
 require 'webmock/rspec'
 require 'etcd'

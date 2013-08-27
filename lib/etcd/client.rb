@@ -66,24 +66,23 @@ module Etcd
     # has been created. {#connect} returns self so you can just chain it after
     # the call to {.new}, e.g. `Client.new.connect`.
     #
-    # You can specify a seed node to connect to using the `:host` and `:port`
-    # options (which default to 127.0.0.1:4001), but once connected the client
-    # will prefer to talk to the master in order to avoid unnecessary HTTP
-    # requests, and to make sure that get operations find the most recent value.
+    # You can specify a seed node to connect to using the `:uri` option (which
+    # defaults to 127.0.0.1:4001), but once connected the client will prefer to
+    # talk to the master in order to avoid unnecessary HTTP requests, and to
+    # make sure that get operations find the most recent value.
     #
     # @param [Hash] options
-    # @option options [String] :host ('127.0.0.1') The etcd host to connect to
-    # @option options [String] :port (4001) The port to connect to
+    # @option options [String] :uri ('http://127.0.0.1:4001') The etcd host and
+    #   port to connect to
     def initialize(options={})
-      @host = options[:host] || '127.0.0.1'
-      @port = options[:port] || 4001
+      @seed_uri = options[:uri] || 'http://127.0.0.1:4001'
       @protocol_version = 'v1'
       @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
       @http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
     def connect
-      change_uris("http://#{@host}:#{@port}")
+      change_uris(@seed_uri)
       change_uris(leader)
       cache_machines
       self

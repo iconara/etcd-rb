@@ -6,15 +6,7 @@ require 'open-uri'
 
 describe 'A etcd client' do
   let :client do
-    Etcd::Client.new(host: host, port: port).connect
-  end
-
-  let :host do
-    ENV['ETCD_HOST']
-  end
-
-  let :port do
-    ENV['ETCD_PORT'].to_i
+    Etcd::Client.new(uri: ENV['ETCD_URI']).connect
   end
 
   let :prefix do
@@ -31,7 +23,7 @@ describe 'A etcd client' do
 
   before do
     begin
-      open("http://#{host}:#{port}/v1/leader").read
+      open("#{ENV['ETCD_URI']}/v1/leader").read
     rescue Errno::ECONNREFUSED
       fail('etcd not running, start it with `./spec/resources/etcd-cluster start`')
     end

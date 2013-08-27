@@ -6,7 +6,7 @@ require 'spec_helper'
 module Etcd
   describe Client do
     let :client do
-      described_class.new(host: host, port: port).connect
+      described_class.new(uri: "http://#{host}:#{port}").connect
     end
 
     let :host do
