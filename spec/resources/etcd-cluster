@@ -4,6 +4,7 @@ cd $(dirname $0)/../..
 
 node_count=3
 data_path=tmp/etcd
+hostname='127.0.0.1'
 client_port_base=4000
 server_port_base=7000
 
@@ -13,16 +14,36 @@ function usage () {
   exit 1
 }
 
-function start () {
+function find_etcd () {
   if [[ -n "$ETCD_HOME" ]]; then
+    for bin_path in $ETCD_HOME/bin/etcd $ETCD_HOME/etcd; do
+      if [[ -e $bin_path ]]; then
+        echo $bin_path
+        return 0
+      fi
+    done
+  fi
+  return -1
+}
+
+function start () {
+  bin_path=$(find_etcd)
+
+  if [[ -n "$bin_path" ]]; then
     mkdir -p $data_path
 
     for (( i = 1; i <= $node_count; i++ )); do
       if (( i > 1 )); then
-        master_address="-C 127.0.0.1:$((server_port_base + 1))"
+        master_option="-C=127.0.0.1:$((server_port_base + 1))"
       fi
-      $ETCD_HOME/bin/etcd -d $data_path/node$i -s $((server_port_base + i)) -c $((client_port_base + i)) $master_address >> $data_path/node$i.out & 2>&1
+      $bin_path -vv \
+        -n=node$i \
+        -d=$data_path/node$i \
+        -s=$hostname:$((server_port_base + i)) \
+        -c=$hostname:$((client_port_base + i)) \
+        $master_option >> $data_path/node$i.out & 2>&1
       echo $! > $data_path/node$i.pid
+      sleep 1
     done
   else
     echo "Cannot find etcd, please set ETCD_HOME" 1>&2
@@ -64,12 +85,12 @@ function reset () {
 }
 
 function leader () {
-  curl -s -L "http://127.0.0.1:$((client_port_base + 1))/leader"
+  curl -s -L "http://127.0.0.1:$((client_port_base + 1))/v1/leader"
   echo
 }
 
 function machines () {
-  curl -s -L "http://127.0.0.1:$((client_port_base + 1))/machines" | tr "," "\n"
+  curl -s -L "http://127.0.0.1:$((client_port_base + 1))/v1/machines" | perl -pe 's/,\s*/\n/g'
   echo
 }
 
