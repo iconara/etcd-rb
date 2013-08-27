@@ -1,5 +1,5 @@
 language: ruby
-script: rspec spec/etcd
+script: rspec
 bundler_args: --without development
 rvm:
   - 1.9.3
