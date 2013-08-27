@@ -1,7 +1,6 @@
 source 'https://rubygems.org/'
 
-gem 'httpclient'
-gem 'multi_json'
+gemspec
 
 group :development do
   gem 'pry'

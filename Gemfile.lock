@@ -1,3 +1,10 @@
+PATH
+  remote: .
+  specs:
+    etcd-rb (1.0.0.pre1)
+      httpclient (~> 2.3.0)
+      multi_json (~> 1.7.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -88,8 +95,7 @@ PLATFORMS
 
 DEPENDENCIES
   coveralls
-  httpclient
-  multi_json
+  etcd-rb!
   perftools.rb
   pry
   redcarpet
