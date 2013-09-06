@@ -59,12 +59,15 @@ module Etcd
   class Client
     # Creates a new `etcd` client.
     #
+    # The preferred way to create a new client is `Client.connect(options)`.
+    #
     # You should call {#connect} on the client to properly initialize it. The
     # creation of the client and connection is divided into two parts to avoid
     # doing network connections in the object initialization code. Many times
     # you want to defer things with side-effect until the whole object graph
     # has been created. {#connect} returns self so you can just chain it after
-    # the call to {.new}, e.g. `Client.new.connect`.
+    # the call to {.new}, e.g. `Client.new.connect`. Most of the time you want
+    # to simply do `Client.connect`, though.
     #
     # You can specify a seed node to connect to using the `:uri` option (which
     # defaults to 127.0.0.1:4001), but once connected the client will prefer to
@@ -81,6 +84,22 @@ module Etcd
       @http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
+    # Create a new client and connect it to the etcd cluster.
+    #
+    # This method is the preferred way to create a new client, and is the
+    # equivalent of `Client.new(options).connect`. See {#initialize} and
+    # {#connect} for options and details.
+    #
+    # @see #initialize
+    # @see #connect
+    def self.connect(options={})
+      new(options).connect
+    end
+
+    # Connect to the etcd cluster.
+    #
+    # Asks the seed node the addresses nodes in the cluster. After this initial
+    # setup the client will talk only to the leader of the cluster.
     def connect
       change_uris(@seed_uri)
       cache_machines

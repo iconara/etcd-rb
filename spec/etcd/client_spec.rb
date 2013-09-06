@@ -38,6 +38,13 @@ module Etcd
       stub_request(:get, machines_uri).to_return(body: machines.join(', '))
     end
 
+    describe '.connect' do
+      it 'is the equivalent of Client.new.connect' do
+        described_class.connect(uri: "http://#{host}:#{port}")
+        WebMock.should have_requested(:get, machines_uri)
+      end
+    end
+
     describe '#connect' do
       it 'gets the list of machines' do
         client

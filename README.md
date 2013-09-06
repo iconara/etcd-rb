@@ -18,7 +18,8 @@ An etcd cluster. _Currently incompatible with the most recent versions of etcd b
 ```ruby
 require 'etcd'
 
-client = Etcd::Client.new
+client = Etcd::Client.connect(uri: 'http://localhost:4001')
+client.connect
 client.set('/foo', 'bar')
 client.get('/foo')
 ```
@@ -30,6 +31,14 @@ See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/mast
 ## Continuous watches: observers
 
 Most of the time when you use watches with etcd you want to immediately re-watch the key when you get a change notification. The `Client#observe` method handles this for you, including re-watching with the last seen index, so that you don't miss any updates.
+
+```ruby
+client = Etcd:Client.connect
+client.connect
+client.observe('/foo') do
+  puts '/foo changed!'
+end
+```
 
 ## Automatic leader detection
 
