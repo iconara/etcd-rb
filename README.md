@@ -95,7 +95,25 @@ Watches are a special case, since they use long polling, they will break when th
 
 Check out the [releases on GitHub](https://github.com/iconara/etcd-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
+
+# Development
+    # make your changes
+    $ sh/test
+
+
+# Playing in shell
+    # start a test cluster
+    $ sh/start_cluster
+    # load console with etcd-rb code
+    $ sh/c
+    > seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
+    > client = Etcd::Client.connect(:uris => seed_uris)
+
+
+
+
 # How to contribute
+
 
 Fork the repository, make your changes in a topic branch that branches off from the right place in the history (HEAD isn't necessarily always right), make your changes and finally submit a pull request.
 
