@@ -159,18 +159,6 @@ module Etcd
       end
     end
 
-    if RUBY_VERSION == "2.0.0"
-      describe '#Time.iso8601' do
-        ## time-parsing changed in ruby 2.0, the milliseconds are truncated
-        ## see https://gist.github.com/mindreframer/6746829
-        it "has errors on ruby 2.0" do
-          Time.iso8601("2013-12-11T12:09:08.123+02:00").to_f.should_not == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f
-          Time.iso8601("2013-12-11T12:09:08.123+02:00").to_f.should     == (Time.utc(2013, 12, 11, 10, 9, 8) + 0).to_f
-        end
-      end
-    end
-
-
     describe '#info' do
       it 'returns the key, value, index, expiration and TTL for a key' do
         body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
@@ -179,7 +167,7 @@ module Etcd
         info[:key].should == '/foo'
         info[:value].should == 'bar'
         info[:index].should == 31
-        ## rounding because of ruby 2.0 time parsing bug
+        # rounding because of ruby 2.0 time parsing bug @see https://gist.github.com/mindreframer/6746829
         info[:expiration].to_f.round.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round
         info[:ttl].should == 7
       end
@@ -296,7 +284,7 @@ module Etcd
         info[:key].should == '/foo/bar'
         info[:value].should == 'bar'
         info[:index].should == 3
-        ## rounding because of ruby 2.0 time parsing bug
+        # rounding because of ruby 2.0 time parsing bug @see https://gist.github.com/mindreframer/6746829
         info[:expiration].to_f.round.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round
         info[:ttl].should == 7
       end
