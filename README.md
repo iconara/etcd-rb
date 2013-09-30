@@ -5,9 +5,8 @@
 
 # Requirements
 
-A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
-
-An etcd cluster. _Currently incompatible with the most recent versions of etcd because they return the wrong URI for the leader._
+  - A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
+  - An etcd cluster.
 
 # Installation
 
@@ -18,7 +17,7 @@ An etcd cluster. _Currently incompatible with the most recent versions of etcd b
 ```ruby
 require 'etcd'
 
-client = Etcd::Client.connect(uri: 'http://localhost:4001')
+client = Etcd::Client.connect(uris: 'http://localhost:4001')
 client.connect
 client.set('/foo', 'bar')
 client.get('/foo')
@@ -91,10 +90,6 @@ This is handled completely transparently to you.
 
 Watches are a special case, since they use long polling, they will break when the leader goes down. Observers will attempt to reestablish their watches with the new leader.
 
-# Changelog & versioning
-
-Check out the [releases on GitHub](https://github.com/iconara/etcd-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
-
 
 # Development
     # make your changes
@@ -110,6 +105,10 @@ Check out the [releases on GitHub](https://github.com/iconara/etcd-rb/releases).
     > client = Etcd::Client.connect(:uris => seed_uris)
 
 
+
+# Changelog & versioning
+
+Check out the [releases on GitHub](https://github.com/iconara/etcd-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 
 # How to contribute
