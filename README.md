@@ -30,6 +30,8 @@ See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/mast
 ## Automatic Failover
 
 ```ruby
+# start with
+# $ sh/c to have NodeKiller available :)
 seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
 client = Etcd::Client.connect(:uris => seed_uris)
 
