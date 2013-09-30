@@ -7,7 +7,10 @@ module Etcd
       include Etcd::Requestable
       include Etcd::Constants
 
-      # Etcd::Cluster.cluster_status("http://127.0.0.1:4001")
+      # @example
+      #   Etcd::Cluster.cluster_status("http://127.0.0.1:4001")
+      #
+      # @return [Array] of node attributes as [Hash]
       def cluster_status(uri)
         begin
           data = request_data(:get, status_uri(uri))
@@ -31,7 +34,12 @@ module Etcd
         end
       end
 
-      # Etcd::Cluster.nodes_from_uri("http://127.0.0.1:4001")
+
+
+      # @example
+      #   Etcd::Cluster.nodes_from_uri("http://127.0.0.1:4001")
+      #
+      # @return [Array] of [Node] instances, representing cluster status
       def nodes_from_uri(uri)
         node_attributes = cluster_status(uri)
         nodes_from_attributes(node_attributes)
@@ -44,7 +52,11 @@ module Etcd
       end
 
       # creates new cluster with updated status
-      # Etcd::Cluster.init_from_uris("http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003")
+      # is preferred way to create a cluster instance
+      # @example
+      #   Etcd::Cluster.init_from_uris("http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003")
+      #
+      # @return [Cluster] instance with live data in nodes
       def init_from_uris(*uris)
         Array(uris).each do |uri|
           if Etcd::Cluster.cluster_status(uri)
@@ -72,6 +84,8 @@ module Etcd
       end
     end
 
+    # leader instance in cluster
+    # @return [Node]
     def leader
       nodes.select{|x| x.is_leader}.first
     end
