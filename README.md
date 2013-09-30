@@ -26,6 +26,45 @@ client.get('/foo')
 
 See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/master/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
 
+
+
+## Automatic Failover
+
+```ruby
+seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
+client = Etcd::Client.connect(:uris => seed_uris)
+
+
+## set some values
+client.set("foo", "bar")
+client.get("foo") # => bar
+client.get("does-not-exist") # => nil
+
+## kill leader node
+NodeKiller.kill_node(client.cluster.leader.name)
+
+## client still trucking on
+client.get("foo") # => bar
+
+## we have visibility into cluster status
+puts client.cluster.nodes.map(&:status) # => [:running, :down, :running]
+
+# will leave only one process running by killing the next leader node
+NodeKiller.kill_node(client.cluster.leader.name)
+puts client.cluster.nodes.map(&:status) # => [:running, :down, :down]
+
+# but since we have no leader with one process, all requests will fail
+client.cluster.leader # => nil
+client.get("foo") # raises AllNodesDownError error
+
+## now start up the cluster in another terminal by executing
+## `sh/start_cluster`
+
+## client works again
+client.get("foo") # => bar
+
+```
+
 # Features
 
 ## Continuous watches: observers

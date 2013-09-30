@@ -1,12 +1,7 @@
 # encoding: utf-8
 
-require 'time'
-require 'thread'
-require 'httpclient'
-require 'multi_json'
-
-
 module Etcd
+
   # A client for `etcd`. Implements all core operations (`get`, `set`, `delete`
   # and `watch`) and features (TTL, atomic test-and-set, listing directories,
   # etc).
@@ -17,35 +12,36 @@ module Etcd
   #
   # @note All methods that take a key or prefix as argument will prepend a slash
   #   to the key if it does not start with slash.
-  #
+
   # @example Basic usage
-  #   client = Etcd::Client.new
+  #   seed_uris = ['http://127.0.0.1:4001', 'http://127.0.0.1:4002', 'http://127.0.0.1:4003']
+  #   client = Etcd::Client.connect(:uris => seed_uris)
   #   client.set('/foo/bar', 'baz')
   #   client.get('/foo/bar') # => 'baz'
   #   client.delete('/foo/bar') # => 'baz'
-  #
+
   # @example Make a key expire automatically after 5s
   #   client.set('/foo', 'bar', ttl: 5)
-  #
+
   # @example Atomic updates
   #   client.set('/foo/bar', 'baz')
   #   # ...
   #   if client.update('/foo/bar', 'qux', 'baz')
   #     puts 'Nobody changed our data'
   #   end
-  #
+
   # @example Listing a directory
   #   client.set('/foo/bar', 'baz')
   #   client.set('/foo/qux', 'fizz')
   #   client.get('/foo') # => {'/foo/bar' => 'baz', '/foo/qux' => 'fizz'}
-  #
+
   # @example Getting info for a key
   #   client.set('/foo', 'bar', ttl: 5)
   #   client.info('/foo') # => {:key => '/foo',
   #                       #     :value => '/bar',
   #                       #     :expires => Time.utc(...),
   #                       #     :ttl => 4}
-  #
+
   # @example Observing changes to a key
   #   observer = client.observe('/foo') do |value, key|
   #     # This will be run asynchronously
@@ -55,34 +51,19 @@ module Etcd
   #   client.set('/foo/qux', 'fizz') # "The key /foo/qux changed to fizz" is printed
   #   # stop receiving change notifications
   #   observer.cancel
-  # 
+
+
   class Client
-    # Creates a new `etcd` client.
-    #
-    # The preferred way to create a new client is `Client.connect(options)`.
-    #
-    # You should call {#connect} on the client to properly initialize it. The
-    # creation of the client and connection is divided into two parts to avoid
-    # doing network connections in the object initialization code. Many times
-    # you want to defer things with side-effect until the whole object graph
-    # has been created. {#connect} returns self so you can just chain it after
-    # the call to {.new}, e.g. `Client.new.connect`. Most of the time you want
-    # to simply do `Client.connect`, though.
-    #
-    # You can specify a seed node to connect to using the `:uri` option (which
-    # defaults to 127.0.0.1:4001), but once connected the client will prefer to
-    # talk to the master in order to avoid unnecessary HTTP requests, and to
-    # make sure that get operations find the most recent value.
-    #
-    # @param [Hash] options
-    # @option options [String] :uri ('http://127.0.0.1:4001') The etcd host and
-    #   port to connect to
+    include Etcd::Constants
+
+    attr_accessor :cluster
+    attr_accessor :leader
+    attr_accessor :seed_uris
+
     def initialize(options={})
-      @seed_uri = options[:uri] || 'http://127.0.0.1:4001'
-      @protocol_version = 'v1'
-      @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
-      @http_client.redirect_uri_callback = method(:handle_redirected)
+      @seed_uris = options[:uris] || ['http://127.0.0.1:4001']
     end
+
 
     # Create a new client and connect it to the etcd cluster.
     #
@@ -93,20 +74,28 @@ module Etcd
     # @see #initialize
     # @see #connect
     def self.connect(options={})
-      new(options).connect
+      self.new(options).connect
     end
 
-    # Connect to the etcd cluster.
+    # Connects to the etcd cluster
     #
-    # Asks the seed node the addresses nodes in the cluster. After this initial
-    # setup the client will talk only to the leader of the cluster.
+    # @see #update_cluster
     def connect
-      change_uris(@seed_uri)
-      cache_machines
-      change_uris(@machines_cache.first)
+      update_cluster
       self
-    rescue AllNodesDownError => e
-      raise ConnectionError, e.message, e.backtrace
+    end
+
+    # Creates a Cluster-instance from `@seed_uris`
+    # and stores the cluster leader information
+    def update_cluster
+      @cluster = Etcd::Cluster.init_from_uris(*seed_uris)
+      @leader  = @cluster.leader
+    end
+
+    # kinda magic accessor-method:
+    # - will reinitialize leader && cluster if needed
+    def leader
+      @leader ||= @cluster.leader || update_cluster && self.leader
     end
 
     # Sets the value of a key.
@@ -121,13 +110,30 @@ module Etcd
     #   for the key
     # @return [String] The previous value (if any)
     def set(key, value, options={})
-      body = {:value => value}
-      if ttl = options[:ttl]
-        body[:ttl] = ttl
-      end
-      response = request(:post, uri(key), body: body)
-      data = MultiJson.load(response.body)
+      body       = {:value => value}
+      body[:ttl] = options[:ttl] if options[:ttl]
+      data       = request_data(:post, key_uri(key), body: body)
       data[S_PREV_VALUE]
+    end
+
+    # Gets the value or values for a key.
+    #
+    # If the key represents a directory with direct decendants (e.g. "/foo" for
+    # "/foo/bar") a hash of keys and values will be returned.
+    #
+    # @param key [String] the key or prefix to retrieve
+    # @return [String, Hash] the value for the key, or a hash of keys and values
+    #   when the key is a prefix.
+    def get(key)
+      data = request_data(:get, key_uri(key))
+      return nil unless data
+      if data.is_a?(Array)
+        data.each_with_object({}) do |e, acc|
+          acc[e[S_KEY]] = e[S_VALUE]
+        end
+      else
+        data[S_VALUE]
+      end
     end
 
     # Atomically sets the value for a key if the current value for the key
@@ -147,36 +153,32 @@ module Etcd
     #   for the key
     # @return [true, false] whether or not the operation succeeded
     def update(key, value, expected_value, options={})
-      body = {:value => value, :prevValue => expected_value}
-      if ttl = options[:ttl]
-        body[:ttl] = ttl
-      end
-      response = request(:post, uri(key), body: body)
-      response.status == 200
+      body       = {:value => value, :prevValue => expected_value}
+      body[:ttl] = options[:ttl] if options[:ttl]
+      data       = request_data(:post, key_uri(key), body: body)
+      !! data
     end
 
-    # Gets the value or values for a key.
+    # Remove a key and its value.
     #
-    # If the key represents a directory with direct decendants (e.g. "/foo" for
-    # "/foo/bar") a hash of keys and values will be returned.
+    # The previous value is returned, or `nil` if the key did not exist.
     #
-    # @param key [String] the key or prefix to retrieve
-    # @return [String, Hash] the value for the key, or a hash of keys and values
-    #   when the key is a prefix.
-    def get(key)
-      response = request(:get, uri(key))
-      if response.status == 200
-        data = MultiJson.load(response.body)
-        if data.is_a?(Array)
-          data.each_with_object({}) do |e, acc|
-            acc[e[S_KEY]] = e[S_VALUE]
-          end
-        else
-          data[S_VALUE]
-        end
-      else
-        nil
-      end
+    # @param key [String] the key to remove
+    # @return [String] the previous value, if any
+    def delete(key)
+      data = request_data(:delete, key_uri(key))
+      return nil unless data
+      data[S_PREV_VALUE]
+    end
+
+    # Returns true if the specified key exists.
+    #
+    # This is a convenience method and equivalent to calling {#get} and checking
+    # if the value is `nil`.
+    #
+    # @return [true, false] whether or not the specified key exists
+    def exists?(key)
+      !!get(key)
     end
 
     # Returns info about a key, such as TTL, expiration and index.
@@ -195,49 +197,19 @@ module Etcd
     # @return [Hash] a with info about the key, the exact contents depend on
     #   what kind of key it is.
     def info(key)
-      response = request(:get, uri(key))
-      if response.status == 200
-        data = MultiJson.load(response.body)
-        if data.is_a?(Array)
-          data.each_with_object({}) do |d, acc|
-            info = extract_info(d)
-            info.delete(:action)
-            acc[info[:key]] = info
-          end
-        else
-          info = extract_info(data)
+      data = request_data(:get, uri(key))
+      return nil unless data
+      if data.is_a?(Array)
+        data.each_with_object({}) do |d, acc|
+          info = extract_info(d)
           info.delete(:action)
-          info
+          acc[info[:key]] = info
         end
       else
-        nil
+        info = extract_info(data)
+        info.delete(:action)
+        info
       end
-    end
-
-    # Remove a key and its value.
-    #
-    # The previous value is returned, or `nil` if the key did not exist.
-    #
-    # @param key [String] the key to remove
-    # @return [String] the previous value, if any
-    def delete(key)
-      response = request(:delete, uri(key))
-      if response.status == 200
-        data = MultiJson.load(response.body)
-        data[S_PREV_VALUE]
-      else
-        nil
-      end
-    end
-
-    # Returns true if the specified key exists.
-    #
-    # This is a convenience method and equivalent to calling {#get} and checking
-    # if the value is `nil`.
-    #
-    # @return [true, false] whether or not the specified key exists
-    def exists?(key)
-      !!get(key)
     end
 
     # Watches a key or prefix and calls the given block when with any changes.
@@ -265,13 +237,10 @@ module Etcd
     # @yieldparam [Hash] info the info for the key that changed
     # @return [Object] the result of the given block
     def watch(prefix, options={})
-      parameters = {}
-      if index = options[:index]
-        parameters[:index] = index
-      end
-      response = request(:get, uri(prefix, S_WATCH), query: parameters)
-      data = MultiJson.load(response.body)
-      info = extract_info(data)
+      parameters         = {}
+      parameters[:index] = options[:index] if options[:index]
+      data               = request_data(:get, watch_uri(prefix), query: parameters)
+      info               = extract_info(data)
       yield info[:value], info[:key], info
     end
 
@@ -309,126 +278,58 @@ module Etcd
       Observer.new(self, prefix, handler).tap(&:run)
     end
 
-    # Returns a list of URIs for the machines in the `etcd` cluster.
-    #
-    # The first URI is for the leader.
-    #
-    # @return [Array<String>] the URIs of the machines in the cluster
-    def machines
-      response = request(:get, @machines_uri)
-      response.body.split(MACHINES_SEPARATOR_RE)
+private
+    def key_uri(key)
+      uri(key, S_KEYS)
     end
 
-    private
+    def watch_uri(key)
+      uri(key, S_WATCH)
+    end
 
-    S_KEY = 'key'.freeze
-    S_KEYS = 'keys'.freeze
-    S_VALUE = 'value'.freeze
-    S_INDEX = 'index'.freeze
-    S_EXPIRATION = 'expiration'.freeze
-    S_TTL = 'ttl'.freeze
-    S_NEW_KEY = 'newKey'.freeze
-    S_DIR = 'dir'.freeze
-    S_PREV_VALUE = 'prevValue'.freeze
-    S_ACTION = 'action'.freeze
-    S_WATCH = 'watch'.freeze
-    S_LOCATION = 'location'.freeze
-
-    S_SLASH = '/'.freeze
-    MACHINES_SEPARATOR_RE = /,\s*/
+    ## :uri and :request_data are the only methods calling :leader method
+    ## so they both need to handle the case for missing leader in cluster
 
     def uri(key, action=S_KEYS)
+      raise AllNodesDownError unless leader
       key = "/#{key}" unless key.start_with?(S_SLASH)
-      "#{@base_uri}/#{action}#{key}"
+      "#{leader.etcd}/v1/#{action}#{key}"
     end
 
-    def request(method, uri, args={})
-      @http_client.request(method, uri, args.merge(follow_redirect: true))
-    rescue HTTPClient::TimeoutError => e
-      old_base_uri = @base_uri
-      handle_leader_down
-      uri.sub!(old_base_uri, @base_uri)
-      retry
+    def request_data(method, uri, args={})
+      begin
+        Etcd::Http.request_data(method, uri, args)
+      rescue Errno::ECONNREFUSED, HTTPClient::TimeoutError => e
+        old_leader_uri = @leader.etcd
+        update_cluster
+        if @leader
+          uri = uri.gsub(old_leader_uri, @leader.etcd)
+          retry
+        else
+          raise AllNodesDownError
+        end
+      end
     end
+
 
     def extract_info(data)
       info = {
-        :key => data[S_KEY],
+        :key   => data[S_KEY],
         :value => data[S_VALUE],
         :index => data[S_INDEX],
       }
-      expiration_s = data[S_EXPIRATION]
-      ttl = data[S_TTL]
-      previous_value = data[S_PREV_VALUE]
-      action_s = data[S_ACTION]
-      info[:expiration] = Time.iso8601(expiration_s) if expiration_s
-      info[:ttl] = ttl if ttl
-      info[:new_key] = data[S_NEW_KEY] if data.include?(S_NEW_KEY)
-      info[:dir] = data[S_DIR] if data.include?(S_DIR)
+      expiration_s          = data[S_EXPIRATION]
+      ttl                   = data[S_TTL]
+      previous_value        = data[S_PREV_VALUE]
+      action_s              = data[S_ACTION]
+      info[:expiration]     = Time.iso8601(expiration_s) if expiration_s
+      info[:ttl]            = ttl if ttl
+      info[:new_key]        = data[S_NEW_KEY] if data.include?(S_NEW_KEY)
+      info[:dir]            = data[S_DIR] if data.include?(S_DIR)
       info[:previous_value] = previous_value if previous_value
-      info[:action] = action_s.downcase.to_sym if action_s
+      info[:action]         = action_s.downcase.to_sym if action_s
       info
     end
 
-    def handle_redirected(uri, response)
-      location = URI.parse(response.header[S_LOCATION][0])
-      change_uris("#{location.scheme}://#{location.host}:#{location.port}")
-      cache_machines
-      @http_client.default_redirect_uri_callback(uri, response)
-    end
-
-    def handle_leader_down
-      if @machines_cache && @machines_cache.any?
-        @machines_cache.reject! { |m| @base_uri.include?(m) }
-        change_uris(@machines_cache.shift)
-      else
-        raise AllNodesDownError, 'All known nodes are down'
-      end
-    end
-
-    def cache_machines
-      @machines_cache = machines
-    end
-
-    def change_uris(leader_uri, options={})
-      @base_uri = "#{leader_uri}/#{@protocol_version}"
-      @leader_uri = "#{@base_uri}/leader"
-      @machines_uri = "#{@base_uri}/machines"
-    end
-
-    # @private
-    class Observer
-      def initialize(client, prefix, handler)
-        @client = client
-        @prefix = prefix
-        @handler = handler
-      end
-
-      def run
-        @running = true
-        index = nil
-        @thread = Thread.start do
-          while @running
-            @client.watch(@prefix, index: index) do |value, key, info|
-              if @running
-                index = info[:index]
-                @handler.call(value, key, info)
-              end
-            end
-          end
-        end
-        self
-      end
-
-      def cancel
-        @running = false
-        self
-      end
-
-      def join
-        @thread.join
-        self
-      end
-    end
   end
 end

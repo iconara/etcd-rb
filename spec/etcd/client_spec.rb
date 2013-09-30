@@ -1,68 +1,34 @@
 # encoding: utf-8
-
 require 'spec_helper'
-
 
 module Etcd
   describe Client do
+    include ClusterHelper
+
+    def default_client(uri = "http://127.0.0.1:4001")
+      client         = Etcd::Client.new(:uris => uri)
+      client.cluster = healthy_cluster(uri)
+      client
+    end
+
+    # manually construct a valid cluster object
+    # clumsy, but works atm
+    def healthy_cluster(uri = "http://127.0.0.1:4001")
+      data    = Etcd::Cluster.parse_cluster_status(status_data)
+      nodes   = Etcd::Cluster.nodes_from_attributes(data)
+      cluster = Etcd::Cluster.new(uri)
+      cluster.nodes = nodes
+      nodes.map{|x| x.status = :running}
+      nodes.first.is_leader = true
+      cluster
+    end
+
+    def base_uri
+      "http://127.0.0.1:4001/v1"
+    end
+
     let :client do
-      described_class.new(uri: "http://#{host}:#{port}").connect
-    end
-
-    let :host do
-      'example.com'
-    end
-
-    let :port do
-      50_000
-    end
-
-    let :base_uri do
-      "http://#{host}:#{port}/v1"
-    end
-
-    let :machines_uri do
-      "http://#{host}:#{port}/v1/machines"
-    end
-
-    let :leader_uri do
-      "http://#{host}:#{port}/v1/leader"
-    end
-
-    let :machines do
-      %W[http://#{host}:#{port} http://#{host}:#{port + 2} http://#{host}:#{port + 1}]
-    end
-
-    before do
-      stub_request(:get, leader_uri).to_return(body: "http://#{host}:#{port}")
-      stub_request(:get, machines_uri).to_return(body: machines.join(', '))
-    end
-
-    describe '.connect' do
-      it 'is the equivalent of Client.new.connect' do
-        described_class.connect(uri: "http://#{host}:#{port}")
-        WebMock.should have_requested(:get, machines_uri)
-      end
-    end
-
-    describe '#connect' do
-      it 'gets the list of machines' do
-        client
-        WebMock.should have_requested(:get, machines_uri)
-      end
-
-      it 'raises an error when the seed node cannot be contacted' do
-        stub_request(:get, machines_uri).to_timeout
-        expect { client }.to raise_error(ConnectionError)
-      end
-
-      it 'discards the seed node and instead talks to the leader (the first in the list of machines)' do
-        machines.push(machines.shift)
-        stub_request(:get, machines_uri).to_return(body: machines.join(','))
-        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'wrong value'}))
-        stub_request(:get, "#{machines[0]}/v1/keys/foo").to_return(body: MultiJson.dump({'value' => 'right value'}))
-        client.get('/foo').should == 'right value'
-      end
+      default_client
     end
 
     describe '#get' do
@@ -99,67 +65,8 @@ module Etcd
           client.get('/foo').should eql({'/foo/bar' => 'bar', '/foo/baz' => 'baz'})
         end
       end
-
-      context 'when not talking to the master' do
-        before do
-          stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 307, headers: {'Location' => 'http://example.com:7654/v1/keys/foo'})
-          stub_request(:get, 'http://example.com:7654/v1/machines').to_return(body: %w[http://example.com:7654 http://example.com:7655].join(', '))
-          stub_request(:get, 'http://example.com:7654/v1/keys/foo').to_return(body: MultiJson.dump({'value' => 'bar'}))
-        end
-
-        it 'follows redirects' do
-          client.get('/foo').should == 'bar'
-        end
-
-        it 'sets the new host as the new leader when it is redirected' do
-          client.get('/foo')
-          client.get('/foo').should == 'bar'
-          WebMock.should have_requested(:get, "#{base_uri}/keys/foo").once
-        end
-
-        it 'asks for a new list of cluster machines' do
-          client.get('/foo')
-          WebMock.should have_requested(:get, 'http://example.com:7654/v1/machines').once
-        end
-      end
-
-      context 'when nodes go down' do
-        let :uris do
-          machines.map { |m| "#{m}/v1/keys/thing" }
-        end
-
-        it 'tries with another node when the leader appears to be down' do
-          stub_request(:get, uris[0]).to_timeout
-          stub_request(:get, uris[1]).to_return(body: MultiJson.dump({'value' => 'bar'}))
-          stub_request(:get, uris[2]).to_return(body: MultiJson.dump({'value' => 'baz'}))
-          client.get('/thing').should == 'bar'
-        end
-
-        it 'tries other nodes until it finds one that responds' do
-          stub_request(:get, uris[0]).to_timeout
-          stub_request(:get, uris[1]).to_timeout
-          stub_request(:get, uris[2]).to_return(body: MultiJson.dump({'value' => 'bar'}))
-          client.get('/thing').should == 'bar'
-        end
-
-        it 'follows redirects when trying a node after a leader failure, and saves the new leader' do
-          stub_request(:get, uris[0]).to_timeout
-          stub_request(:get, uris[1]).to_return(status: 307, headers: {'Location' => uris[2]})
-          stub_request(:get, uris[2]).to_return(body: MultiJson.dump({'value' => 'bar'}))
-          stub_request(:get, uris[2].sub('/keys/thing', '/machines')).to_return(body: [uris[1], uris[2]].join(', '))
-          stub_request(:get, uris[2].sub('/thing', '/bar')).to_return(body: MultiJson.dump({'value' => 'baz'}))
-          client.get('/thing').should == 'bar'
-          client.get('/bar').should == 'baz'
-        end
-
-        it 'raises an error when all leader candidates have been exhausted' do
-          stub_request(:get, uris[0]).to_timeout
-          stub_request(:get, uris[1]).to_timeout
-          stub_request(:get, uris[2]).to_timeout
-          expect { client.get('/thing') }.to raise_error(AllNodesDownError)
-        end
-      end
     end
+
 
     describe '#set' do
       before do
@@ -218,6 +125,7 @@ module Etcd
       end
     end
 
+
     describe '#delete' do
       before do
         stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
@@ -251,6 +159,18 @@ module Etcd
       end
     end
 
+    if RUBY_VERSION == "2.0.0"
+      describe '#Time.iso8601' do
+        ## time-parsing changed in ruby 2.0, the milliseconds are truncated
+        ## see https://gist.github.com/mindreframer/6746829
+        it "has errors on ruby 2.0" do
+          Time.iso8601("2013-12-11T12:09:08.123+02:00").to_f.should_not == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f
+          Time.iso8601("2013-12-11T12:09:08.123+02:00").to_f.should     == (Time.utc(2013, 12, 11, 10, 9, 8) + 0).to_f
+        end
+      end
+    end
+
+
     describe '#info' do
       it 'returns the key, value, index, expiration and TTL for a key' do
         body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
@@ -259,7 +179,8 @@ module Etcd
         info[:key].should == '/foo'
         info[:value].should == 'bar'
         info[:index].should == 31
-        info[:expiration].to_f.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f
+        ## rounding because of ruby 2.0 time parsing bug
+        info[:expiration].to_f.round.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round
         info[:ttl].should == 7
       end
 
@@ -375,7 +296,8 @@ module Etcd
         info[:key].should == '/foo/bar'
         info[:value].should == 'bar'
         info[:index].should == 3
-        info[:expiration].to_f.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f
+        ## rounding because of ruby 2.0 time parsing bug
+        info[:expiration].to_f.round.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round
         info[:ttl].should == 7
       end
 
@@ -388,6 +310,7 @@ module Etcd
         return_value.should == '/foo/bar'
       end
     end
+
 
     describe '#observe' do
       it 'watches the specified key prefix' do
@@ -446,13 +369,5 @@ module Etcd
       end
     end
 
-    describe '#machines' do
-      it 'returns a list of host and ports of the machines in the etcd cluster' do
-        body = 'http://host01:4001, http://host02:4001, http://host03:4001'
-        stub_request(:get, machines_uri).to_return(body: body)
-        stub_request(:get, machines_uri.sub(base_uri, 'http://host01:4001/v1')).to_return(body: body)
-        client.machines.should == %w[http://host01:4001 http://host02:4001 http://host03:4001]
-      end
-    end
   end
 end

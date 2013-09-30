@@ -19,6 +19,7 @@ describe 'A etcd client' do
 
   before do
     WebMock.disable!
+    Etcd::Http.reset_client!
   end
 
   before do
