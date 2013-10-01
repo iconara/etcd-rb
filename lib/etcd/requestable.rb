@@ -9,9 +9,7 @@ module Etcd
     end
 
     def request(method, uri, args={})
-      # to remove the '?' mark for simple get requests
-      args = nil if args == {}
-      http_client.request(method, uri, args)
+      http_client.request(method, uri, args.merge(follow_redirect: true))
     end
 
     def request_data(method, uri, args={})
