@@ -40,6 +40,7 @@ module Etcd
       #   Etcd::Cluster.nodes_from_uri("http://127.0.0.1:4001")
       #
       # @return [Array] of [Node] instances, representing cluster status
+      # @see #nodes_from_attributes
       def nodes_from_uri(uri)
         node_attributes = cluster_status(uri)
         nodes_from_attributes(node_attributes)
