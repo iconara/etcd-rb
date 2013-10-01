@@ -46,7 +46,7 @@ module ClusterHelper
   def with_stubbed_status(uri)
     status_uri = Etcd::Cluster.status_uri(uri)
     stub_request(:get, status_uri).to_return(body: MultiJson.dump(status_data))
-    yield
+    yield if block_given?
     #WebMock.should have_requested(:get, status_uri)
   end
 
@@ -69,7 +69,7 @@ module ClusterHelper
     cluster_config.each do |url, leader_uri|
       stub_leader_uri(url, :leader => leader_uri)
     end
-    yield
+    yield if block_given?
     #urls.each { |url| WebMock.should have_requested(:get, leader_uri(url))}
   end
 end
