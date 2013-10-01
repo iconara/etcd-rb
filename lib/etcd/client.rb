@@ -55,6 +55,7 @@ module Etcd
 
   class Client
     include Etcd::Constants
+    include Etcd::Requestable
 
     attr_accessor :cluster
     attr_accessor :leader
@@ -298,7 +299,7 @@ private
 
     def request_data(method, uri, args={})
       begin
-        Etcd::Http.request_data(method, uri, args)
+        super
       rescue Errno::ECONNREFUSED, HTTPClient::TimeoutError => e
         old_leader_uri = @leader.etcd
         update_cluster

@@ -4,7 +4,7 @@ module Etcd
       @http_client ||= reset_http_client!
     end
 
-    def self.reset_client!
+    def reset_http_client!
       @http_client = HTTPClient.new(agent_name: "etcd-rb/#{VERSION}")
     end
 
@@ -14,7 +14,7 @@ module Etcd
       http_client.request(method, uri, args)
     end
 
-    def self.request_data(method, uri, args={})
+    def request_data(method, uri, args={})
       response = request(method, uri, args)
       if response.status_code == 200
         MultiJson.load(response.body)
