@@ -369,7 +369,7 @@ module Etcd
         "http://127.0.0.1:4002"
       end
 
-      it "it follows redirects and updates the cluster status transparently" do
+      it "#post - follows redirects and updates the cluster status transparently" do
         with_stubbed_status(etcd1_uri)
         with_stubbed_leaders(healthy_cluster_config)
 
@@ -384,7 +384,6 @@ module Etcd
         client.set("foo", "bar")
         client.leader.etcd.should == etcd2_uri
         client.leader.name.should == "node2"
-
       end
     end
 
