@@ -13,7 +13,7 @@ require 'multi_json'
 
 require 'etcd/version'
 require 'etcd/constants'
-require 'etcd/http'
+require 'etcd/requestable'
 require 'etcd/node'
 require 'etcd/cluster'
 require 'etcd/observer'
