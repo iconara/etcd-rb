@@ -63,6 +63,7 @@ module Etcd
 
     def initialize(options={})
       @seed_uris = options[:uris] || ['http://127.0.0.1:4001']
+      http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
 
@@ -277,6 +278,11 @@ module Etcd
     #   join on
     def observe(prefix, &handler)
       Observer.new(self, prefix, handler).tap(&:run)
+    end
+
+    def handle_redirected(uri, response)
+      update_cluster
+      http_client.default_redirect_uri_callback(uri, response)
     end
 
 private
