@@ -5,8 +5,9 @@ require 'open-uri'
 
 
 describe 'A etcd client' do
+
   let :client do
-    Etcd::Client.new(uri: ENV['ETCD_URI']).connect
+    Etcd::Client.new(uris: ENV['ETCD_URI']).connect
   end
 
   let :prefix do
@@ -19,6 +20,7 @@ describe 'A etcd client' do
 
   before do
     WebMock.disable!
+    WebMock.allow_net_connect!
   end
 
   before do

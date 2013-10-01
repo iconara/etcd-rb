@@ -22,3 +22,5 @@ ENV['ETCD_URI'] ||= 'http://127.0.0.1:4001'
 
 require 'webmock/rspec'
 require 'etcd'
+require 'json'
+Dir["./spec/support/*.rb"].each { |f|  require f}

@@ -5,9 +5,8 @@
 
 # Requirements
 
-A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
-
-An etcd cluster. _Currently incompatible with the most recent versions of etcd because they return the wrong URI for the leader._
+  - A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
+  - An etcd cluster.
 
 # Installation
 
@@ -18,13 +17,54 @@ An etcd cluster. _Currently incompatible with the most recent versions of etcd b
 ```ruby
 require 'etcd'
 
-client = Etcd::Client.connect(uri: 'http://localhost:4001')
+client = Etcd::Client.connect(uris: 'http://localhost:4001')
 client.connect
 client.set('/foo', 'bar')
 client.get('/foo')
 ```
 
 See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/master/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
+
+
+
+## Automatic Failover
+
+```ruby
+# start with
+# $ sh/c to have NodeKiller available :)
+seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
+client = Etcd::Client.connect(:uris => seed_uris)
+
+
+## set some values
+client.set("foo", "bar")
+client.get("foo") # => bar
+client.get("does-not-exist") # => nil
+
+## kill leader node
+NodeKiller.kill_node(client.cluster.leader.name)
+
+## client still trucking on
+client.get("foo") # => bar
+
+## we have visibility into cluster status
+puts client.cluster.nodes.map(&:status) # => [:running, :down, :running]
+
+# will leave only one process running by killing the next leader node
+NodeKiller.kill_node(client.cluster.leader.name)
+puts client.cluster.nodes.map(&:status) # => [:running, :down, :down]
+
+# but since we have no leader with one process, all requests will fail
+client.cluster.leader # => nil
+client.get("foo") # raises AllNodesDownError error
+
+## now start up the cluster in another terminal by executing
+## `sh/start_cluster`
+
+## client works again
+client.get("foo") # => bar
+
+```
 
 # Features
 
@@ -52,11 +92,29 @@ This is handled completely transparently to you.
 
 Watches are a special case, since they use long polling, they will break when the leader goes down. Observers will attempt to reestablish their watches with the new leader.
 
+
+# Development
+    # make your changes
+    $ sh/test
+
+
+# Playing in shell
+    # start a test cluster
+    $ sh/start_cluster
+    # load console with etcd-rb code
+    $ sh/c
+    > seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
+    > client = Etcd::Client.connect(:uris => seed_uris)
+
+
+
 # Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/iconara/etcd-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
+
 # How to contribute
+
 
 Fork the repository, make your changes in a topic branch that branches off from the right place in the history (HEAD isn't necessarily always right), make your changes and finally submit a pull request.
 
