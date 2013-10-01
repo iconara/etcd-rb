@@ -370,23 +370,20 @@ module Etcd
       end
 
       it "it follows redirects and updates the cluster status transparently" do
+        with_stubbed_status(etcd1_uri)
+        with_stubbed_leaders(healthy_cluster_config)
 
-        with_stubbed_status(etcd1_uri) do
-          with_stubbed_leaders(healthy_cluster_config) do
-            client = Etcd::Client.connect(:uris => etcd1_uri)
-            client.leader.etcd.should == etcd1_uri
-            client.leader.name.should == "node1"
+        client = Etcd::Client.connect(:uris => etcd1_uri)
+        client.leader.etcd.should == etcd1_uri
+        client.leader.name.should == "node1"
 
-            with_stubbed_leaders(healthy_cluster_changed_leader_config) do
-              stub_request(:post, "#{etcd1_uri}/v1/keys/foo").to_return(status: 307, headers: {'Location' => "#{etcd2_uri}/v1/keys/foo}"})
-              stub_request(:post, "#{etcd2_uri}/v1/keys/foo%7D").to_return(body: MultiJson.dump({'value' => 'bar'}))
-              client.set("foo", "bar")
-              client.leader.etcd.should == etcd2_uri
-              client.leader.name.should == "node2"
-            end
-          end
-        end
+        with_stubbed_leaders(healthy_cluster_changed_leader_config)
 
+        stub_request(:post, "#{etcd1_uri}/v1/keys/foo").to_return(status: 307, headers: {'Location' => "#{etcd2_uri}/v1/keys/foo"})
+        stub_request(:post, "#{etcd2_uri}/v1/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
+        client.set("foo", "bar")
+        client.leader.etcd.should == etcd2_uri
+        client.leader.name.should == "node2"
 
       end
     end
