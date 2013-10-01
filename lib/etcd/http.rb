@@ -29,7 +29,6 @@ module Etcd
     end
 
     def request(method, uri, args={})
-      #puts "m: #{method}, uri: #{uri}, args: #{args.inspect}"
       Etcd::Http.request(method, uri, args)
     end
   end
