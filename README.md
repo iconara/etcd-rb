@@ -31,7 +31,7 @@ See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/mast
 
 ```ruby
 # start with
-# $ sh/c to have NodeKiller available :)
+# $ sh/c to have ClusterController available :)
 seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
 client = Etcd::Client.connect(:uris => seed_uris)
 
@@ -42,7 +42,7 @@ client.get("foo") # => bar
 client.get("does-not-exist") # => nil
 
 ## kill leader node
-NodeKiller.kill_node(client.cluster.leader.name)
+ClusterController.kill_node(client.cluster.leader.name)
 
 ## client still trucking on
 client.get("foo") # => bar
@@ -51,7 +51,7 @@ client.get("foo") # => bar
 puts client.cluster.nodes.map(&:status) # => [:running, :down, :running]
 
 # will leave only one process running by killing the next leader node
-NodeKiller.kill_node(client.cluster.leader.name)
+ClusterController.kill_node(client.cluster.leader.name)
 
 # but since we have no leader with one process, all requests will fail
 client.get("foo") # raises AllNodesDownError error
@@ -60,7 +60,7 @@ puts client.cluster.nodes.map(&:status) # => [:running, :down, :down]
 client.cluster.leader # => nil
 
 ## now start up the cluster in another terminal by executing
-NodeKiller.start_cluster
+ClusterController.start_cluster
 
 ## client works again
 client.get("foo") # => bar
@@ -77,7 +77,7 @@ Here an example in the developer terminal:
 
 ```ruby
 # ensure we have a cluster with 3 nodes
-NodeKiller.start_cluster
+ClusterController.start_cluster
 # test_client method is only sugar for local development
 client = Etcd::Client.test_client
 
@@ -89,7 +89,7 @@ end
 # this will trigger the observer
 client.set("foo", "bar")
 # let's kill the leader of the cluster to demonstrate the re-watching feature
-NodeKiller.kill_node(client.cluster.leader.name)
+ClusterController.kill_node(client.cluster.leader.name)
 # still triggering the observer!
 client.set("foo", "bar")
 ```
@@ -105,6 +105,34 @@ When connecting for the first time, and when the leader changes, the list of nod
 This is handled completely transparently to you.
 
 Watches are a special case, since they use long polling, they will break when the leader goes down. Observers will attempt to reestablish their watches with the new leader.
+
+
+## Heartbeating
+
+To ensure, that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with :heartbeat_freq  (in seconds) parameter:
+
+
+```ruby
+$ sh/c
+# ensure we have a cluster with 3 nodes
+ClusterController.start_cluster
+client = Etcd::Client.test_client(:heartbeat_freq => 5)
+
+# your block can get value, key and info of the change, that you are observing
+client.observe('/foo') do |v,k,info|
+  puts "v #{v}, k: #{k}, info: #{info}"
+end
+
+### START A NEW console with $ `sh/c` helper
+client = Etcd::Client.test_client
+# this will trigger the observer in the first console
+client.set("foo", "bar")
+# let's kill the leader of the cluster to demonstrate re-watching && heartbeating for all active clients
+ClusterController.kill_node(client.cluster.leader.name)
+# still triggering the observer in the first console
+# you might loose some changes in the 5-seconds window.. still OK.
+client.set("foo", "bar")
+```
 
 
 # Development
