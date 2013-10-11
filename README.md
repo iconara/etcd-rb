@@ -73,12 +73,25 @@ client.get("foo") # => bar
 
 Most of the time when you use watches with etcd you want to immediately re-watch the key when you get a change notification. The `Client#observe` method handles this for you, including re-watching with the last seen index, so that you don't miss any updates.
 
+Here an example in the developer terminal:
+
 ```ruby
-client = Etcd:Client.connect
-client.connect
-client.observe('/foo') do
-  puts '/foo changed!'
+# ensure we have a cluster with 3 nodes
+NodeKiller.start_cluster
+# test_client method is only sugar for local development
+client = Etcd::Client.test_client
+
+# your block can get value, key and info of the change, that you are observing
+client.observe('/foo') do |v,k,info|
+  puts "v #{v}, k: #{k}, info: #{info}"
 end
+
+# this will trigger the observer
+client.set("foo", "bar")
+# let's kill the leader of the cluster to demonstrate the re-watching feature
+NodeKiller.kill_node(client.cluster.leader.name)
+# still triggering the observer!
+client.set("foo", "bar")
 ```
 
 ## Automatic leader detection
