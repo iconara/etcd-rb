@@ -60,11 +60,18 @@ module Etcd
     attr_accessor :cluster
     attr_accessor :leader
     attr_accessor :seed_uris
+    attr_accessor :heartbeat_freq
     attr_accessor :observers
 
+
+    # @param options [Hash]
+    # @option options [Array] :uris (['http://127.0.0.1:4001']) seed uris with etcd cluster nodes
+    # @option options [Integer] :heartbeat_freq (0) check-frequency for leader status (in seconds)
+    #  Heartbeating will start only for non-zero values
     def initialize(options={})
-      @observers = {}
-      @seed_uris = options[:uris] || ['http://127.0.0.1:4001']
+      @observers      = {}
+      @seed_uris      = options[:uris] || ['http://127.0.0.1:4001']
+      @heartbeat_freq = options[:heartbeat_freq].to_i
       http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
@@ -85,6 +92,7 @@ module Etcd
     # @see #update_cluster
     def connect
       update_cluster
+      start_heartbeat_if_needed
       self
     end
 
@@ -285,18 +293,27 @@ module Etcd
       ob
     end
 
-
-    def refresh_observers
-      observers.each do |prefix, observer|
-        observer.rerun
+    # Initiates heartbeating the leader node in a background thread
+    # ensures, that observers are refreshed after leader re-election
+    def start_heartbeat_if_needed
+      return if @heartbeat_freq == 0
+      return if @heartbeat_thread
+      @heartbeat_thread = Thread.new do
+        while true do
+          heartbeat_command
+        end
       end
     end
 
 
+    # Pretty output in development console
     def inspect
       %Q(<Etcd::Client #{seed_uris}>)
     end
 
+    # Only happens on attempted write to a follower node in cluster. Means:
+    # - leader changed since last update
+    # Solution: just get fresh cluster status
     def handle_redirected(uri, response)
       update_cluster
       http_client.default_redirect_uri_callback(uri, response)
@@ -311,14 +328,14 @@ private
       uri(key, S_WATCH)
     end
 
-    ## :uri and :request_data are the only methods calling :leader method
-    ## so they both need to handle the case for missing leader in cluster
-
+    # :uri and :request_data are the only methods calling :leader method
+    # so they both need to handle the case for missing leader in cluster
     def uri(key, action=S_KEYS)
       raise AllNodesDownError unless leader
       key = "/#{key}" unless key.start_with?(S_SLASH)
       "#{leader.etcd}/v1/#{action}#{key}"
     end
+
 
     def request_data(method, uri, args={})
       begin
@@ -335,6 +352,26 @@ private
       end
     end
 
+
+    # Re-initiates watches after leader election
+    def refresh_observers
+      observers.each do |_, observer|
+        observer.rerun
+      end
+    end
+
+    # The command to check leader online status,
+    # runs in background and is resilient to failures
+    def heartbeat_command
+      begin
+        print "."
+        request_data(:get, key_uri("foo"))
+      rescue Exception => e
+        print "heartbeat error - "
+        puts e.message
+      end
+      sleep heartbeat_freq
+    end
 
     def extract_info(data)
       info = {
