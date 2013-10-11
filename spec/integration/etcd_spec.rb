@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'open-uri'
 
 
-describe 'A etcd client' do
+describe 'With real server an etcd client' do
 
   let :client do
     Etcd::Client.new(uris: ENV['ETCD_URI']).connect
