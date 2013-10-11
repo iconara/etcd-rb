@@ -1,1 +1,1 @@
-COVERAGE=no rspec spec/etcd/cluster_spec.rb spec/etcd/node_spec.rb spec/etcd/client_spec.rb
+COVERAGE=no rspec
