@@ -60,12 +60,13 @@ module Etcd
     attr_accessor :cluster
     attr_accessor :leader
     attr_accessor :seed_uris
+    attr_accessor :observers
 
     def initialize(options={})
+      @observers = {}
       @seed_uris = options[:uris] || ['http://127.0.0.1:4001']
       http_client.redirect_uri_callback = method(:handle_redirected)
     end
-
 
     # Create a new client and connect it to the etcd cluster.
     #
@@ -92,6 +93,8 @@ module Etcd
     def update_cluster
       @cluster = Etcd::Cluster.init_from_uris(*seed_uris)
       @leader  = @cluster.leader
+      refresh_observers
+      @leader
     end
 
     # kinda magic accessor-method:
@@ -277,7 +280,18 @@ module Etcd
     # @return [#cancel, #join] an observer object which you can call cancel and
     #   join on
     def observe(prefix, &handler)
-      Observer.new(self, prefix, handler).tap(&:run)
+      ob = Observer.new(self, prefix, handler).tap(&:run)
+      @observers[prefix] = ob
+      ob
+    end
+
+
+    def refresh_observers
+      observers.each do |prefix, observer|
+        observer.rerun
+      end
+    end
+
 
     def inspect
       %Q(<Etcd::Client #{seed_uris}>)
