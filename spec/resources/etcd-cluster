@@ -43,7 +43,7 @@ function start () {
         -c=$hostname:$((client_port_base + i)) \
         $master_option >> $data_path/node$i.out & 2>&1
       echo $! > $data_path/node$i.pid
-      sleep 1
+      sleep 0.05
     done
   else
     echo "Cannot find etcd, please set ETCD_HOME" 1>&2
