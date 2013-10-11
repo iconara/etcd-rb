@@ -1,0 +1,1 @@
+ETCD_HOME=/usr/local/bin ./spec/resources/etcd-cluster $1
