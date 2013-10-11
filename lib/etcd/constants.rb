@@ -12,9 +12,7 @@ module Etcd
     S_ACTION              = 'action'.freeze
     S_WATCH               = 'watch'.freeze
     S_LOCATION            = 'location'.freeze
-
     S_SLASH               = '/'.freeze
     S_AND                 = '&'.freeze
-    MACHINES_SEPARATOR_RE = /,\s*/
   end
 end
