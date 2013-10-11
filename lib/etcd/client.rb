@@ -278,6 +278,9 @@ module Etcd
     #   join on
     def observe(prefix, &handler)
       Observer.new(self, prefix, handler).tap(&:run)
+
+    def inspect
+      %Q(<Etcd::Client #{seed_uris}>)
     end
 
     def handle_redirected(uri, response)
