@@ -5,6 +5,10 @@ class ClusterController
   end
 
   def self.start_cluster
-    `sh/start_cluster`
+    `sh/cluster start`
+  end
+
+  def self.stop_cluster
+    `sh/cluster stop`
   end
 end
