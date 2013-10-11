@@ -10,7 +10,7 @@
 
 # Installation
 
-    gem install etcd-rb --prerelease
+    gem install etcd-rb
 
 # Quick start
 
