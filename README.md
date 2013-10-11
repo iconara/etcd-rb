@@ -52,14 +52,15 @@ puts client.cluster.nodes.map(&:status) # => [:running, :down, :running]
 
 # will leave only one process running by killing the next leader node
 NodeKiller.kill_node(client.cluster.leader.name)
-puts client.cluster.nodes.map(&:status) # => [:running, :down, :down]
 
 # but since we have no leader with one process, all requests will fail
-client.cluster.leader # => nil
 client.get("foo") # raises AllNodesDownError error
 
+puts client.cluster.nodes.map(&:status) # => [:running, :down, :down]
+client.cluster.leader # => nil
+
 ## now start up the cluster in another terminal by executing
-## `sh/start_cluster`
+NodeKiller.start_cluster
 
 ## client works again
 client.get("foo") # => bar
