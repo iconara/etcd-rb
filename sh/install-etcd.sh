@@ -54,5 +54,6 @@ cd etcd-repo
 ./build
 cd ..
 cp etcd-repo/etcd .
-echo "etcd binary with version $(./etcd -version) is ready in $TMPDIR! move to /usr/local/bin folder!"
-echo "just execute: mv $TMPDIR/etcd /usr/local/bin/etcd"
+echo "etcd binary with version $(./etcd -version) is ready in $TMPDIR!"
+echo "for system-wide installation copy to /usr/local/bin folder!"
+echo "just execute: cp $TMPDIR/etcd /usr/local/bin/etcd"
