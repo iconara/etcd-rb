@@ -1,1 +1,1 @@
-ETCD_HOME=/usr/local/bin ./spec/resources/etcd-cluster.rb $1
+./spec/resources/etcd-cluster $1
