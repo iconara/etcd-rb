@@ -28,7 +28,7 @@ describe 'With real server an etcd client' do
   end
 
   before do
-    pending('etcd could not be started, check it with `sh/cluster start`') unless client.leader
+    pending('etcd could not be started, check it with `sh/cluster start`') unless client
   end
 
   before do
