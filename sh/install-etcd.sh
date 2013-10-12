@@ -33,7 +33,7 @@ echo $TMPDIR
 mkdir -p $TMPDIR
 cd $TMPDIR
 
-## download all the crap
+## download everything
 file="go1.1.2.$(go_version).tar.gz"
 if [ ! -e $file ]; then
   wget https://go.googlecode.com/files/$file
