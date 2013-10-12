@@ -55,7 +55,7 @@ Watches are a special case, since they use long polling, they will break when th
 
 ### Heartbeating
 
-To ensure that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with `:heartbeat_freq`  (in seconds) parameter. This will start a background thread, that will periodially check the leader status, which in case of leader re-election will trigger the failover.
+To ensure that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with `:heartbeat_freq  (in seconds) parameter. This will start a background thread, that will periodially check the leader status, which in case of leader re-election will trigger the failover.
 
 
 ### Example: Automatic Failover
@@ -142,7 +142,7 @@ client.set("foo", "bar")
 # let's kill the leader of the cluster to demonstrate re-watching && heartbeating for all active clients
 ClusterController.kill_node(client.cluster.leader.name)
 # still triggering the observer in the first console
-# you might loose some changes in the 5-seconds window.. still OK.
+# you might loose some changes in the 5-seconds hearbeating window... You should be aware of that.
 client.set("foo", "bar")
 ```
 
