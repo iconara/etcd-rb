@@ -364,7 +364,6 @@ private
     # runs in background and is resilient to failures
     def heartbeat_command
       begin
-        print "."
         request_data(:get, key_uri("foo"))
       rescue Exception => e
         print "heartbeat error - "
