@@ -39,17 +39,17 @@ See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/mast
 
 
 # Development helpers
-  # console for quick REPL testing
-  $ sh/c
+    # console for quick REPL testing
+    $ sh/c
 
-  # start/stop Etcd cluster
-  $ sh/cluster <start/stop/reset>
+    # start/stop Etcd cluster
+    $ sh/cluster <start/stop/reset>
 
-  # install Etcd binary to tmp folder
-  $ sh/install-etcd.sh
+    # install Etcd binary to tmp folder
+    $ sh/install-etcd.sh
 
-  # run tests
-  $ sh/test
+    # run tests
+    $ sh/test
 
 
 # Playing in shell
