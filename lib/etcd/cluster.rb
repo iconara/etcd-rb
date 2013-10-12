@@ -66,6 +66,7 @@ module Etcd
             return instance
           end
         end
+        raise AllNodesDownError, "could not initialize a cluster from #{uris.join(", ")}"
       end
     end
 
