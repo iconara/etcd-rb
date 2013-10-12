@@ -34,7 +34,7 @@ module Etcd
     end
 
     def inspect
-      %Q(#{self.class} - #{name_with_status} - #{etcd})
+      %Q(<#{self.class} - #{name_with_status} - #{etcd}>)
     end
 
     def name_with_status
