@@ -66,7 +66,7 @@ See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/mast
 
 Most of the time when you use watches with etcd you want to immediately re-watch the key when you get a change notification. The `Client#observe` method handles this for you, including re-watching with the last seen index, so that you don't miss any updates.
 
-### Automatic leader detection
+### Automatic leader detection - [Example](#example-automatic-leader-detection)
 
 All writes go to the leader-node. When the leader is re-elected, next request triggers a redirect and re-evaluation for
 the cluster status on the client side. This happens transparently to you.
@@ -82,6 +82,21 @@ Watches are a special case, since they use long polling, they will break when th
 
 To ensure that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with `:heartbeat_freq  (in seconds) parameter. This will start a background thread, that will periodially check the leader status, which in case of leader re-election will trigger the failover.
 
+### Example: Automatic Leader Detection
+
+```ruby
+$ sh/c
+# ensure we have a cluster with 3 nodes
+ClusterController.start_cluster
+client = Etcd::Client.test_client
+# => <Etcd::Client ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]>
+client.leader
+# => <Etcd::Node - node2 (leader) - http://127.0.0.1:4002>
+ClusterController.kill_node(client.cluster.leader.name)
+client.get("foo")
+client.leader # leader has changed!
+#=> <Etcd::Node - node3 (leader) - http://127.0.0.1:4003>
+```
 
 ### Example: Automatic Failover
 
