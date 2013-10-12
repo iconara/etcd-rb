@@ -6,7 +6,9 @@
 # Requirements
 
   - A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
-  - `etcd`-binary at /usr/local/bin/etcd.
+  - Linux/OSX OS
+  - to have a local compiled Etcd daemon, run
+    - $ `sh/install-etcd.sh`
 
 # Installation
 
@@ -23,16 +25,39 @@ client.set('/foo', 'bar')
 client.get('/foo')
 ```
 
+See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/master/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
+
+
+# Development
+    $ git clone https://github.com/iconara/etcd-rb.git
+    $ cd etcd-rb
+    # will compile the etcd binary in the tmp folder to use for testing
+    $ sh/install-etcd.sh
+    $ bundle install
+    # make your changes
+    $ sh/test
+
+
+# Development helpers
+  # console for quick REPL testing
+  $ sh/c
+
+  # start/stop Etcd cluster
+  $ sh/cluster <start/stop/reset>
+
+  # install Etcd binary to tmp folder
+  $ sh/install-etcd.sh
+
+  # run tests
+  $ sh/test
+
+
 # Playing in shell
     # load console with etcd-rb code
     $ sh/c
     > ClusterController.start_cluster
     > seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
     > client = Etcd::Client.connect(:uris => seed_uris)
-
-
-See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/master/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
-
 
 
 # Features
@@ -145,11 +170,6 @@ ClusterController.kill_node(client.cluster.leader.name)
 # you might loose some changes in the 5-seconds hearbeating window... You should be aware of that.
 client.set("foo", "bar")
 ```
-
-
-# Development
-    # make your changes
-    $ sh/test
 
 
 
