@@ -6,7 +6,7 @@
 # Requirements
 
   - A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
-  - An etcd cluster.
+  - `etcd`-binary at /usr/local/bin/etcd.
 
 # Installation
 
@@ -23,11 +23,42 @@ client.set('/foo', 'bar')
 client.get('/foo')
 ```
 
+# Playing in shell
+    # load console with etcd-rb code
+    $ sh/c
+    > ClusterController.start_cluster
+    > seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
+    > client = Etcd::Client.connect(:uris => seed_uris)
+
+
 See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/master/frames) for more. All core features are supported, including test-and-set, TTL, watches -- as well as a few convenience features like continuous watching.
 
 
 
-## Automatic Failover
+# Features
+
+### Automatic leader detection
+
+All write go to the leader of the cluster. When the leader is re-elected, it triggers a redirect and re-evaluation for
+the cluster status on the client side. This is handled completely transparently to you.
+
+### Automacic failover & retry
+
+If a request fails, client will try to get cluster configuration from all given seed URIs until first response. Then the request will be retried. This is handled completely transparently to you.
+
+Watches are a special case, since they use long polling, they will break when the leader goes down. Observers will attempt to reestablish their watches with the new leader.
+
+
+### Continuous watches: observers
+
+Most of the time when you use watches with etcd you want to immediately re-watch the key when you get a change notification. The `Client#observe` method handles this for you, including re-watching with the last seen index, so that you don't miss any updates.
+
+### Heartbeating
+
+To ensure that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with :heartbeat_freq  (in seconds) parameter.
+
+
+### Example: Automatic Failover
 
 ```ruby
 # start with
@@ -67,15 +98,11 @@ client.get("foo") # => bar
 
 ```
 
-# Features
 
-## Continuous watches: observers
-
-Most of the time when you use watches with etcd you want to immediately re-watch the key when you get a change notification. The `Client#observe` method handles this for you, including re-watching with the last seen index, so that you don't miss any updates.
-
-Here an example in the developer terminal:
+### Example: Observers
 
 ```ruby
+$ sh/c
 # ensure we have a cluster with 3 nodes
 ClusterController.start_cluster
 # test_client method is only sugar for local development
@@ -94,23 +121,8 @@ ClusterController.kill_node(client.cluster.leader.name)
 client.set("foo", "bar")
 ```
 
-## Automatic leader detection
 
-You can point the client to any node in the etcd cluster, it will ask that node for the current leader and direct all subsequent requests directly to the leader to avoid unnecessary redirects. When the leader changes, detected by a redirect, the new leader will be registered and used instead of the previous.
-
-## Automacic failover & retry
-
-When connecting for the first time, and when the leader changes, the list of nodes in the cluster is cached. Should the node that the client is talking to become unreachable, the client will attempt to connect to the next known node, until it finds one that responds. The first node to respond will be asked for the current leader, which will then be used for subsequent request.
-
-This is handled completely transparently to you.
-
-Watches are a special case, since they use long polling, they will break when the leader goes down. Observers will attempt to reestablish their watches with the new leader.
-
-
-## Heartbeating
-
-To ensure, that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with :heartbeat_freq  (in seconds) parameter:
-
+### Example: Hearbeating
 
 ```ruby
 $ sh/c
@@ -138,15 +150,6 @@ client.set("foo", "bar")
 # Development
     # make your changes
     $ sh/test
-
-
-# Playing in shell
-    # start a test cluster
-    $ sh/start_cluster
-    # load console with etcd-rb code
-    $ sh/c
-    > seed_uris = ["http://127.0.0.1:4001", "http://127.0.0.1:4002", "http://127.0.0.1:4003"]
-    > client = Etcd::Client.connect(:uris => seed_uris)
 
 
 
