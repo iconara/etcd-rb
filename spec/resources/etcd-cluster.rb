@@ -24,6 +24,7 @@ class EtcdCluster
   end
 
   def start
+    return puts "ETCD binary not found!" unless is_etcd_installed?
     ensure_data_path
     (1..NODE_COUNT).to_a.each do |i|
       cmd = start_node(i)
@@ -38,6 +39,10 @@ class EtcdCluster
 
   def ensure_data_path
     `mkdir -p #{DATA_PATH}`
+  end
+
+  def is_etcd_installed?
+    File.exists?(bin_path)
   end
 
   def start_node(num)
