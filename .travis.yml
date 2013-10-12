@@ -5,6 +5,9 @@ rvm:
   - 1.9.3
   - 2.0.0
   - jruby-19mode
-  - jruby-head
+
+  ## jruby-head has some issues on travis, here the error:
+  ## The command "rvm install jruby-head --binary" failed and exited with 1 during setup.
+  #- jruby-head
 jdk:
   - openjdk7

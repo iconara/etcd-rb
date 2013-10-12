@@ -28,6 +28,11 @@ module Etcd
       self
     end
 
+    def rerun
+      @thread.terminate! if @thread.alive?
+      run
+    end
+
     def join
       @thread.join
       self

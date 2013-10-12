@@ -4,4 +4,4 @@ require 'etcd'
 require 'json'
 
 ## only for testing in the console
-require './spec/resources/node_killer'
+require './spec/support/common_helper'
