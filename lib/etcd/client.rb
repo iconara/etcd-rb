@@ -71,7 +71,7 @@ module Etcd
     def initialize(options={})
       @observers      = {}
       @seed_uris      = options[:uris] || ['http://127.0.0.1:4001']
-      @heartbeat_freq = options[:heartbeat_freq].to_i
+      @heartbeat_freq = options[:heartbeat_freq].to_f
       http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
