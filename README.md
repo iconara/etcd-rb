@@ -69,18 +69,18 @@ Most of the time when you use watches with etcd you want to immediately re-watch
 ### Automatic leader detection
 
 All writes go to the leader-node. When the leader is re-elected, next request triggers a redirect and re-evaluation for
-the cluster status on the client side. This happens transparently to you.
+the cluster status on the client side. This happens transparently to you. [Example](#example-observers)
 
 ### Automatic failover & retry
 
 If a request fails, client will try to get cluster configuration from all given seed URIs until first valid response. Then the original request will be retried. This also happens transparently to you.
 
-Watches are a special case, since they use long polling, they will break when the leader goes down. After a failover observers reestablish their watches with the new leader. Again - this happens transparently to you :)
+Watches are a special case, since they use long polling, they will break when the leader goes down. After a failover observers reestablish their watches with the new leader. Again - this happens transparently to you :) [Example](#example-automatic-failover)
 
 
 ### Heartbeating
 
-To ensure that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with `:heartbeat_freq  (in seconds) parameter. This will start a background thread, that will periodially check the leader status, which in case of leader re-election will trigger the failover.
+To ensure that you have the most up-to-date cluster status and your observers are registered against the current leader node, initiate the client with `:heartbeat_freq  (in seconds) parameter. This will start a background thread, that will periodially check the leader status, which in case of leader re-election will trigger the failover. [Example](#example-heartbeating)
 
 
 ### Example: Automatic Failover
@@ -147,7 +147,7 @@ client.set("foo", "bar")
 ```
 
 
-### Example: Hearbeating
+### Example: Heartbeating
 
 ```ruby
 $ sh/c
