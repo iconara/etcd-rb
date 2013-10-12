@@ -8,7 +8,11 @@ class EtcdCluster
   SERVER_PORT_BASE = 7000
 
   def bin_path
-    '/usr/local/bin/etcd'
+    "#{tmp_path}/install/etcd"
+  end
+
+  def tmp_path
+    File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "tmp"))
   end
 
   def status
@@ -24,7 +28,7 @@ class EtcdCluster
   end
 
   def start
-    return puts "ETCD binary not found!" unless is_etcd_installed?
+    return puts "ETCD binary not found! Please install with $ sh/install-etcd.sh !" unless is_etcd_installed?
     ensure_data_path
     (1..NODE_COUNT).to_a.each do |i|
       cmd = start_node(i)
