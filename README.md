@@ -7,8 +7,8 @@
 
   - A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
   - Linux/OSX OS
-  - to have a local compiled Etcd daemon, run
-    - $ `sh/install-etcd.sh`
+  - to have a local Etcd binary, run
+    - `$ sh/install-etcd.sh`
 
 # Installation
 
