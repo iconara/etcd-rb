@@ -62,11 +62,11 @@ See the full [API documentation](http://rubydoc.info/github/iconara/etcd-rb/mast
 
 # Features
 
-### Continuous watches: observers
+### Continuous watches: observers - [Example](#example-observers)
 
 Most of the time when you use watches with etcd you want to immediately re-watch the key when you get a change notification. The `Client#observe` method handles this for you, including re-watching with the last seen index, so that you don't miss any updates.
 
-### Automatic leader detection - [Example](#example-observers)
+### Automatic leader detection
 
 All writes go to the leader-node. When the leader is re-elected, next request triggers a redirect and re-evaluation for
 the cluster status on the client side. This happens transparently to you.
