@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
 # https://go.googlecode.com/files/go1.1.2.linux-386.tar.gz
-# https://go.googlecode.com/files/go1.1.2.darwin-386.tar.gz
-# https://go.googlecode.com/files/go1.1.2.linux-amd64.tar.gz
 # https://go.googlecode.com/files/go1.1.2.darwin-amd64.tar.gz
 # uname -m (x86_64/386)
 # uname (Linux/Darwin)
@@ -24,11 +22,13 @@ go_version(){
   echo $os-$arch
 }
 
+
 ## set the work directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $DIR/color-functions.sh
+
 TMPDIR="$DIR/../tmp/install"
-echo "Will download golang, clone etcd repo and compile it into:"
-echo $TMPDIR
+log_info "Will download golang, clone etcd repo and compile it into ${Red}tmp/install${RCol}"
 
 mkdir -p $TMPDIR
 cd $TMPDIR
@@ -37,14 +37,21 @@ cd $TMPDIR
 file="go1.1.2.$(go_version).tar.gz"
 if [ ! -e $file ]; then
   wget https://go.googlecode.com/files/$file
+else
+  log_debug "$file already downloaded..."
 fi
 
 if [ ! -d 'go' ]; then
   tar xfvz $file
+else
+  log_debug "go already uncompressed..."
 fi
 
 if [ ! -d 'etcd-repo' ]; then
   git clone https://github.com/coreos/etcd.git etcd-repo
+else
+  log_debug "etcd-repo already cloned, updating..."
+  cd etcd-repo && git pull && cd ..
 fi
 
 
@@ -54,6 +61,6 @@ cd etcd-repo
 ./build
 cd ..
 cp etcd-repo/etcd .
-echo "etcd binary with version $(./etcd -version) is ready in $TMPDIR!"
-echo "for system-wide installation copy to /usr/local/bin folder!"
-echo "just execute: cp $TMPDIR/etcd /usr/local/bin/etcd"
+log_info "etcd binary with version ${Red} $(./etcd -version) ${RCol}is ready in $TMPDIR!"
+log_info "copy to /usr/local/bin folder for system-wide installation "
+log_info "just execute: ${Red}cp $TMPDIR/etcd /usr/local/bin/etcd ${RCol}"
