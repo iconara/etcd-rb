@@ -57,8 +57,5 @@ module Etcd
       st = 'dead by termination' if st == false
       st
     end
-    def logger
-      @client.logger
-    end
   end
 end
