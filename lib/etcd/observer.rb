@@ -1,6 +1,8 @@
 module Etcd
   # @private
   class Observer
+    include Etcd::Loggable
+
     def initialize(client, prefix, handler)
       @client  = client
       @prefix  = prefix
