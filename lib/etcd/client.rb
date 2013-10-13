@@ -306,18 +306,20 @@ module Etcd
       ob
     end
 
-    # Initiates heartbeating the leader node in a background thread
-    # ensures, that observers are refreshed after leader re-election
-    def start_heartbeat_if_needed
-      return if @heartbeat_freq == 0
-      return if @heartbeat_thread
-      @heartbeat_thread = Thread.new do
-        while true do
-          heartbeat_command
-        end
+    def observers_overview
+      observers.map do |_, observer|
+        observer.pp_status
       end
     end
 
+    def refresh_observers_if_needed
+      refresh_observers if observers.values.any?{|x| not x.status}
+    end
+
+    def start_heartbeat_if_needed
+      @heartbeat = Etcd::Heartbeat.new(self, @heartbeat_freq)
+      @heartbeat.start_heartbeat_if_needed
+    end
 
     # Pretty output in development console
     def inspect
@@ -374,35 +376,6 @@ private
       observers.each do |_, observer|
         observer.rerun unless observer.status
       end
-    end
-
-    def observers_overview
-      observers.map do |_, observer|
-        observer.pp_status
-      end
-    end
-
-    def refresh_observers_if_needed
-      refresh_observers if observers.values.any?{|x| not x.status}
-    end
-
-    # The command to check leader online status,
-    # runs in background and is resilient to failures
-    def heartbeat_command
-      logger.debug("heartbeat_command: enter ")
-      logger.debug(observers_overview.join(", "))
-      begin
-        refresh_observers_if_needed
-        if @status == :down
-          update_cluster
-          @status = :up if leader
-        end
-        request_data(:get, key_uri("foo"))
-      rescue Exception => e
-        @status = :down
-        logger.debug "heartbeat - #{e.message} #{e.backtrace}"
-      end
-      sleep heartbeat_freq
     end
 
     def extract_info(data)
