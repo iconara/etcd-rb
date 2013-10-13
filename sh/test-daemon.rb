@@ -10,8 +10,17 @@ obs = client.observe(key) do |v,k,info|
   puts "switching mongo master to #{v}"
 end
 
+
+def get_memory_usage
+  `ps -o rss= -p #{Process.pid}`.to_i
+end
+
 while true
   sleep 1
+  puts get_memory_usage
+  puts GC.stat
+  GC.start
+  puts GC.stat
 end
 
 
