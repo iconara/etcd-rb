@@ -17,7 +17,8 @@ module Etcd
           logger.debug "starting watching #{@prefix}.. "
           @client.watch(@prefix, index: @index) do |value, key, info|
             if @running
-              @index = info[:index]
+              # next time start watching from next index
+              @index = info[:index] + 1
               @handler.call(value, key, info)
             end
           end
