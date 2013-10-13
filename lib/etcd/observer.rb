@@ -8,17 +8,22 @@ module Etcd
       @prefix  = prefix
       @handler = handler
       @index   = nil
+      reset_logger!(Logger::DEBUG)
     end
 
     def run
       @running = true
       @thread = Thread.start do
         while @running
-          logger.debug "starting watching #{@prefix}.. "
+          logger.debug "********* watching #{@prefix} with index #{@index}"
           @client.watch(@prefix, index: @index) do |value, key, info|
             if @running
+              logger.debug "watch fired for #{@prefix} with #{info.inspect} "
               # next time start watching from next index, if any provided
-              @index = info[:index] + 1 if info[:index]
+              if info[:index]
+                @index = info[:index] + 1
+                logger.debug "index for #{@prefix} ----  #{@index} "
+              end
               @handler.call(value, key, info)
             end
           end
