@@ -70,6 +70,11 @@ class EtcdCluster
     end
   end
 
+  def restart
+    stop
+    start
+  end
+
   def node_pids
     `ps -ef|grep tmp/etcd|grep -v grep`.split("\n").map{|x| x.split[1]}
   end
@@ -85,9 +90,10 @@ end
 cluster = EtcdCluster.new
 
 case ARGV[0]
-  when 'start'  then cluster.start
-  when 'stop'   then cluster.stop
-  when 'status' then cluster.status
-  when 'reset'  then cluster.reset
+  when 'start'   then cluster.start
+  when 'stop'    then cluster.stop
+  when 'status'  then cluster.status
+  when 'restart' then cluster.restart
+  when 'reset'   then cluster.reset
   else cluster.help
 end
