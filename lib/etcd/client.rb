@@ -56,13 +56,13 @@ module Etcd
   class Client
     include Etcd::Constants
     include Etcd::Requestable
+    include Etcd::Loggable
 
     attr_accessor :cluster
     attr_accessor :leader
     attr_accessor :seed_uris
     attr_accessor :heartbeat_freq
     attr_accessor :observers
-    attr_accessor :logger
 
 
     # @param options [Hash]
@@ -73,7 +73,6 @@ module Etcd
       @observers      = {}
       @seed_uris      = options[:uris] || ['http://127.0.0.1:4001']
       @heartbeat_freq = options[:heartbeat_freq].to_f
-      @logger         = options[:logger]|| default_logger
       http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
@@ -89,12 +88,6 @@ module Etcd
       self.new(options).connect
     end
 
-    def default_logger
-      log = Logger.new(STDOUT)
-      log.level = Logger::DEBUG
-      log
-    end
-
     # Connects to the etcd cluster
     #
     # @see #update_cluster
@@ -107,8 +100,11 @@ module Etcd
     # Creates a Cluster-instance from `@seed_uris`
     # and stores the cluster leader information
     def update_cluster
+      logger.debug("update_cluster: enter")
       @cluster = Etcd::Cluster.init_from_uris(*seed_uris)
+      logger.debug("update_cluster: getting leader")
       @leader  = @cluster.leader
+      logger.debug("update_cluster: after success")
       refresh_observers
       @leader
     end
@@ -346,9 +342,11 @@ private
 
 
     def request_data(method, uri, args={})
+      logger.debug("request_data:  #{method} - #{uri} #{args.inspect}")
       begin
         super
       rescue Errno::ECONNREFUSED, HTTPClient::TimeoutError => e
+        logger.debug("request_data:  re-election handling")
         old_leader_uri = @leader.etcd
         update_cluster
         if @leader
@@ -363,6 +361,7 @@ private
 
     # Re-initiates watches after leader election
     def refresh_observers
+      logger.debug("refresh_observers: enter")
       observers.each do |_, observer|
         observer.rerun
       end
@@ -371,11 +370,11 @@ private
     # The command to check leader online status,
     # runs in background and is resilient to failures
     def heartbeat_command
+      logger.debug("heartbeat_command: enter")
       begin
         request_data(:get, key_uri("foo"))
       rescue Exception => e
-        print "heartbeat error - "
-        puts e.message
+        logger.debug "heartbeat error - #{e.message}"
       end
       sleep heartbeat_freq
     end
