@@ -7,17 +7,17 @@ module Etcd
       @client  = client
       @prefix  = prefix
       @handler = handler
+      @index   = nil
     end
 
     def run
       @running = true
-      index = nil
       @thread = Thread.start do
         while @running
           logger.debug "starting watching #{@prefix}.. "
-          @client.watch(@prefix, index: index) do |value, key, info|
+          @client.watch(@prefix, index: @index) do |value, key, info|
             if @running
-              index = info[:index]
+              @index = info[:index]
               @handler.call(value, key, info)
             end
           end
