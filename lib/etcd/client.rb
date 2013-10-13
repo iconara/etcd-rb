@@ -63,6 +63,7 @@ module Etcd
     attr_accessor :seed_uris
     attr_accessor :heartbeat_freq
     attr_accessor :observers
+    attr_accessor :status # :up/:down
 
 
     # @param options [Hash]
@@ -101,18 +102,26 @@ module Etcd
     # and stores the cluster leader information
     def update_cluster
       logger.debug("update_cluster: enter")
-      @cluster = Etcd::Cluster.init_from_uris(*seed_uris)
-      logger.debug("update_cluster: getting leader")
-      @leader  = @cluster.leader
-      logger.debug("update_cluster: after success")
-      refresh_observers
-      @leader
+      begin
+        @cluster = Etcd::Cluster.init_from_uris(*seed_uris)
+        @leader  = @cluster.leader
+        @status  = :up
+        logger.debug("update_cluster: after success")
+        refresh_observers
+        @leader
+      rescue AllNodesDownError => e
+        logger.debug("update_cluster: failed")
+      end
     end
 
     # kinda magic accessor-method:
     # - will reinitialize leader && cluster if needed
     def leader
-      @leader ||= @cluster.leader || update_cluster && self.leader
+      @leader ||= cluster && cluster.leader || update_cluster && self.leader
+    end
+
+    def leader_uri
+      leader && @leader.etcd
     end
 
     # Sets the value of a key.
@@ -337,7 +346,7 @@ private
     def uri(key, action=S_KEYS)
       raise AllNodesDownError unless leader
       key = "/#{key}" unless key.start_with?(S_SLASH)
-      "#{leader.etcd}/v1/#{action}#{key}"
+      "#{leader_uri}/v1/#{action}#{key}"
     end
 
 
@@ -367,14 +376,26 @@ private
       end
     end
 
+    def observers_overview
+      observers.map do |_, observer|
+        observer.status
+      end
+    end
+
     # The command to check leader online status,
     # runs in background and is resilient to failures
     def heartbeat_command
-      logger.debug("heartbeat_command: enter")
+      logger.debug("heartbeat_command: enter ")
+      logger.debug(observers_overview.join(", "))
       begin
+        if @status == :down
+          update_cluster
+          @status = :up if leader
+        end
         request_data(:get, key_uri("foo"))
       rescue Exception => e
-        logger.debug "heartbeat error - #{e.message}"
+        @status = :down
+        logger.debug "heartbeat - #{e.message} #{e.backtrace}"
       end
       sleep heartbeat_freq
     end

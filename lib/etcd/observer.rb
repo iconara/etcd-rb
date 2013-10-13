@@ -41,6 +41,17 @@ module Etcd
       self
     end
 
+    def status
+      "#{@prefix}: #{thread_status}"
+    end
+
+    def thread_status
+      st = @thread.status
+      st = 'dead by exeption'    if st == nil
+      st = 'dead by termination' if st == false
+      st
+    end
+
     def logger
       @client.logger
     end
