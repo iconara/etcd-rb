@@ -8,7 +8,6 @@ puts "observing #{key}"
 
 obs = client.observe(key) do |v,k,info|
   puts "switching mongo master to #{v}"
-  #puts "v #{v}, k: #{k}, info: #{info}"
 end
 
 while true
