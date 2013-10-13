@@ -42,8 +42,7 @@ module Etcd
     end
 
     def logger
-      # @client.logger
-      @logger ||= Logger.new(STDOUT)
+      @client.logger
     end
   end
 end
