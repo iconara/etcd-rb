@@ -10,6 +10,7 @@ require 'time'
 require 'thread'
 require 'httpclient'
 require 'multi_json'
+require 'logger'
 
 require 'etcd/version'
 require 'etcd/constants'

@@ -32,7 +32,7 @@ module Etcd
     def rerun
       logger.debug "rerun for #{@prefix}"
       @thread.terminate if @thread.alive?
-      logger.debug "..after termination for {@prefix}"
+      logger.debug "after termination for #{@prefix}"
       run
     end
 
@@ -42,7 +42,8 @@ module Etcd
     end
 
     def logger
-      @client.logger
+      # @client.logger
+      @logger ||= Logger.new(STDOUT)
     end
   end
 end
