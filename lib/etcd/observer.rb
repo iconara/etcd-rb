@@ -44,16 +44,19 @@ module Etcd
     end
 
     def status
-      "#{@prefix}: #{thread_status}"
+      @thread.status
     end
 
-    def thread_status
+    def pp_status
+      "#{@prefix}: #{pp_thread_status}"
+    end
+
+    def pp_thread_status
       st = @thread.status
-      st = 'dead by exeption'    if st == nil
+      st = 'dead by exception'   if st == nil
       st = 'dead by termination' if st == false
       st
     end
-
     def logger
       @client.logger
     end
