@@ -140,10 +140,14 @@ module Etcd
     # @yieldparam [Hash] info the info for the key that changed
     # @return [Object] the result of the given block
     def watch(prefix, options={})
-      parameters         = {}
-      parameters[:index] = options[:index] if options[:index]
-      data               = request_data(:get, watch_uri(prefix), query: parameters)
-      info               = extract_info(data)
+      if options[:index]
+        parameters = {:index => options[:index]}
+        data       = request_data(:post, watch_uri(prefix), query: parameters)
+      else
+        data       = request_data(:get, watch_uri(prefix), query: {})
+      end
+
+      info         = extract_info(data)
       yield info[:value], info[:key], info
     end
 
