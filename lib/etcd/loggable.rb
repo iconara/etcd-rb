@@ -6,7 +6,8 @@ module Etcd::Loggable
   def reset_logger!
     @logger = begin
       log       = Logger.new(STDOUT)
-      log.level = Logger::DEBUG
+      #log.level = Logger::DEBUG
+      log.level = Logger::WARN
       log
     end
   end
