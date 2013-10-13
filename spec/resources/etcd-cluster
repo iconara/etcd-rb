@@ -32,7 +32,9 @@ class EtcdCluster
     ensure_data_path
     (1..NODE_COUNT).to_a.each do |i|
       cmd = start_node(i)
-      system(cmd)
+      fork do
+        exec(cmd)
+      end
     end
   end
 
