@@ -14,6 +14,7 @@ module Etcd
       # @return [Array] of node attributes as [Hash]
       def cluster_status(uri)
         begin
+          logger.debug("cluster_status - from #{uri}")
           data = request_data(:get, status_uri(uri))
           parse_cluster_status(data)
         rescue Errno::ECONNREFUSED => e
