@@ -372,14 +372,18 @@ private
     def refresh_observers
       logger.debug("refresh_observers: enter")
       observers.each do |_, observer|
-        observer.rerun
+        observer.rerun unless observer.status
       end
     end
 
     def observers_overview
       observers.map do |_, observer|
-        observer.status
+        observer.pp_status
       end
+    end
+
+    def refresh_observers_if_needed
+      refresh_observers if observers.values.any?{|x| not x.status}
     end
 
     # The command to check leader online status,
@@ -388,6 +392,7 @@ private
       logger.debug("heartbeat_command: enter ")
       logger.debug(observers_overview.join(", "))
       begin
+        refresh_observers_if_needed
         if @status == :down
           update_cluster
           @status = :up if leader
