@@ -62,6 +62,7 @@ module Etcd
     attr_accessor :seed_uris
     attr_accessor :heartbeat_freq
     attr_accessor :observers
+    attr_accessor :logger
 
 
     # @param options [Hash]
@@ -72,6 +73,7 @@ module Etcd
       @observers      = {}
       @seed_uris      = options[:uris] || ['http://127.0.0.1:4001']
       @heartbeat_freq = options[:heartbeat_freq].to_f
+      @logger         = options[:logger]|| default_logger
       http_client.redirect_uri_callback = method(:handle_redirected)
     end
 
@@ -85,6 +87,12 @@ module Etcd
     # @see #connect
     def self.connect(options={})
       self.new(options).connect
+    end
+
+    def default_logger
+      log = Logger.new(STDOUT)
+      log.level = Logger::DEBUG
+      log
     end
 
     # Connects to the etcd cluster
