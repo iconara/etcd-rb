@@ -18,7 +18,7 @@ end
 while true
   sleep 1
   GC.start
-  puts "mem:  " + get_memory_usage.to_s + ", heap: " + GC.stat[:heap_free_num].to_s
+  #puts "mem:  " + get_memory_usage.to_s + ", heap: " + GC.stat[:heap_free_num].to_s
 end
 
 
