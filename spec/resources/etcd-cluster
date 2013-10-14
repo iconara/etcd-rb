@@ -38,6 +38,11 @@ class EtcdCluster
     end
   end
 
+  def logs
+    cmd = "tail -f tmp/etcd/node1.out tmp/etcd/node2.out tmp/etcd/node3.out"
+    exec(cmd)
+  end
+
   def reset
     stop
     `rm -rf #{DATA_PATH}`
@@ -95,5 +100,6 @@ case ARGV[0]
   when 'status'  then cluster.status
   when 'restart' then cluster.restart
   when 'reset'   then cluster.reset
+  when 'logs'    then cluster.logs
   else cluster.help
 end
