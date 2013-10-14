@@ -35,8 +35,9 @@ module Etcd
         @index = info[:index] + 1
         logger.debug "index for #{@prefix} ----  #{@index} "
         @handler.call(value, key, info)
-      else
-        @handler.call(value, key, info) if @index == nil
+      # first-time-fire
+      elsif @index == nil
+        @handler.call(value, key, info)
       end
     end
 
