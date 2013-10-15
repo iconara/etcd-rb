@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Exit if any error is encountered:
+set -o errexit
+
 # https://go.googlecode.com/files/go1.1.2.linux-386.tar.gz
 # https://go.googlecode.com/files/go1.1.2.darwin-amd64.tar.gz
 # uname -m (x86_64/386)
