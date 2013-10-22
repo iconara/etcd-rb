@@ -10,6 +10,7 @@ set -o errexit
 go_version(){
   local arch
   local os
+  local osx_version
   if [[ $(uname -m) =~ ^x86_64.* ]]; then
     arch='amd64'
   else
@@ -22,8 +23,15 @@ go_version(){
     os='linux'
   fi
 
-  echo $os-$arch
+  ## osx version
+  # sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1
+  if [ $os == 'darwin' ]; then
+    osx_version='-osx'$(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1)
+  fi
+
+  echo $os-$arch$osx_version
 }
+
 
 
 ## set the work directory
@@ -37,12 +45,14 @@ mkdir -p $TMPDIR
 cd $TMPDIR
 
 ## download everything
-file="go1.1.2.$(go_version).tar.gz"
+#file="go1.1.2.$(go_version).tar.gz"
+file="go1.2rc2.$(go_version).tar.gz"
 if [ ! -e $file ]; then
   wget https://go.googlecode.com/files/$file
 else
   log_debug "$file already downloaded..."
 fi
+
 
 if [ ! -d 'go' ]; then
   tar xfvz $file
@@ -54,7 +64,7 @@ if [ ! -d 'etcd-repo' ]; then
   git clone https://github.com/coreos/etcd.git etcd-repo
 else
   log_debug "etcd-repo already cloned, updating..."
-  cd etcd-repo && git pull && cd ..
+  cd etcd-repo && git fetch && cd ..
 fi
 
 
