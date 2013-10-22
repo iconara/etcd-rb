@@ -6,6 +6,7 @@ module Etcd
     class << self
       include Etcd::Requestable
       include Etcd::Constants
+      include Etcd::Loggable
 
       # @example
       #   Etcd::Cluster.cluster_status("http://127.0.0.1:4001")
@@ -13,9 +14,11 @@ module Etcd
       # @return [Array] of node attributes as [Hash]
       def cluster_status(uri)
         begin
+          logger.debug("cluster_status - from #{uri}")
           data = request_data(:get, status_uri(uri))
           parse_cluster_status(data)
         rescue Errno::ECONNREFUSED => e
+          logger.debug("cluster_status - error!")
           nil
         end
       end
