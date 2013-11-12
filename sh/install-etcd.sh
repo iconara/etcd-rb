@@ -71,7 +71,7 @@ fi
 export GOBIN=$TMPDIR/go/bin
 export PATH=$GOBIN:$PATH
 cd etcd-repo
-git co origin/master
+git checkout origin/master
 ./build
 cd ..
 cp etcd-repo/etcd .
