@@ -10,8 +10,8 @@ module Etcd
     def initialize(opts={})
       check_required(opts)
       @name   = opts[:name]
-      @etcd   = opts[:etcd]
-      @raft   = opts[:raft]
+      @etcd   = URI.decode(opts[:etcd])
+      @raft   = URI.decode(opts[:raft])
       @status = :unknown
     end
 
