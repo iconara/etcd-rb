@@ -28,7 +28,6 @@ module Etcd
       end
 
       def parse_cluster_status(cluster_status_response)
-        p cluster_status_response['node']['nodes']
         cluster_status_response['node']['nodes'].map do |attrs|
           node_name = attrs[S_KEY].split(S_SLASH).last
           urls      = attrs[S_VALUE].split(S_AND)

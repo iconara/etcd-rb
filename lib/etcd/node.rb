@@ -30,7 +30,7 @@ module Etcd
     end
 
     def leader_uri
-      "#{@etcd}/v1/leader"
+      "#{@etcd}/v2/leader"
     end
 
     def inspect

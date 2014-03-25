@@ -15,8 +15,8 @@ module Etcd
     def set(key, value, options={})
       body       = {:value => value}
       body[:ttl] = options[:ttl] if options[:ttl]
-      data       = request_data(:post, key_uri(key), body: body)
-      data[S_PREV_NODE][S_VALUE]
+      data       = request_data(:PUT, key_uri(key), body: body)
+      data[S_PREV_NODE][S_VALUE] if data
     end
 
     # Gets the value or values for a key.
@@ -140,9 +140,9 @@ module Etcd
     # @yieldparam [Hash] info the info for the key that changed
     # @return [Object] the result of the given block
     def watch(prefix, options={})
-      data       = request_data(:get, watch_uri(prefix), query: options)
-
-      info         = extract_info(data)
+      options.merge!(wait: true)
+      data = request_data(:get, watch_uri(prefix), query: options)
+      info = extract_info(data)
       yield info[:value], info[:key], info
     end
 
@@ -152,27 +152,28 @@ module Etcd
     end
 
     def watch_uri(key)
-      uri(key, S_WATCH)
+      uri(key, S_KEYS)
     end
 
 private
 
     def extract_info(data)
+      node = data[S_NODE]
       info = {
-        :key   => data[S_KEY],
-        :value => data[S_VALUE],
-        :index => data[S_INDEX],
+        :key   => node[S_KEY],
+        :value => node[S_VALUE],
+        :index => node[S_INDEX],
       }
-      expiration_s          = data[S_EXPIRATION]
-      ttl                   = data[S_TTL]
-      previous_value        = data[S_PREV_VALUE]
+      expiration_s          = node[S_EXPIRATION]
+      ttl                   = node[S_TTL]
       action_s              = data[S_ACTION]
+      previous_node         = data[S_PREV_NODE]
       info[:expiration]     = Time.iso8601(expiration_s) if expiration_s
       info[:ttl]            = ttl if ttl
-      info[:new_key]        = data[S_NEW_KEY] if data.include?(S_NEW_KEY)
       info[:dir]            = data[S_DIR] if data.include?(S_DIR)
-      info[:previous_value] = previous_value if previous_value
+      info[:previous_value] = previous_node[S_VALUE] if previous_node
       info[:action]         = action_s.downcase.to_sym if action_s
+      info[:new_key]        = !data[S_PREV_NODE]
       info
     end
 
