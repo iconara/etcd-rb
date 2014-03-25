@@ -1,5 +1,7 @@
 module Etcd
   module Constants
+    S_NODE                = 'node'.freeze
+    S_NODES               = 'nodes'.freeze
     S_KEY                 = 'key'.freeze
     S_KEYS                = 'keys'.freeze
     S_VALUE               = 'value'.freeze

@@ -30,7 +30,13 @@ module Etcd
     def get(key)
       data = request_data(:get, key_uri(key))
       return nil unless data
-      return data['node']
+      if nodes = data[S_NODE][S_NODES]
+        nodes.each_with_object({}) do |node, acc|
+          acc[node[S_KEY]] = node[S_VALUE]
+        end
+      else
+        data[S_NODE][S_VALUE]
+      end
     end
 
     # Atomically sets the value for a key if the current value for the key
