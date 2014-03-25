@@ -3,8 +3,8 @@
 # Exit if any error is encountered:
 set -o errexit
 
-# https://go.googlecode.com/files/go1.1.2.linux-386.tar.gz
-# https://go.googlecode.com/files/go1.1.2.darwin-amd64.tar.gz
+# https://go.googlecode.com/files/go1.2.1.linux-amd64.tar.gz
+# https://go.googlecode.com/files/go1.2.1.darwin-amd64-osx10.8.tar.gz
 # uname -m (x86_64/386)
 # uname (Linux/Darwin)
 go_version(){
@@ -26,7 +26,8 @@ go_version(){
   ## osx version
   # sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1
   if [ $os == 'darwin' ]; then
-    osx_version='-osx'$(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1)
+    #osx_version='-osx'$(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1)
+    osx_version='-osx10.8'
   fi
 
   echo $os-$arch$osx_version
@@ -46,7 +47,7 @@ cd $TMPDIR
 
 ## download everything
 #file="go1.1.2.$(go_version).tar.gz"
-file="go1.2rc2.$(go_version).tar.gz"
+file="go1.2.1.$(go_version).tar.gz"
 if [ ! -e $file ]; then
   wget https://go.googlecode.com/files/$file
 else
@@ -69,12 +70,14 @@ fi
 
 
 export GOBIN=$TMPDIR/go/bin
+export GOROOT=$TMPDIR/go
 export PATH=$GOBIN:$PATH
 cd etcd-repo
 git checkout origin/master
 ./build
 cd ..
-cp etcd-repo/etcd .
+cp etcd-repo/bin/etcd .
+cp etcd-repo/bin/bench .
 log_info "etcd binary with version ${Red} $(./etcd -version) ${RCol}is ready in $TMPDIR!"
 log_info "copy to /usr/local/bin folder for system-wide installation "
 log_info "just execute: ${Red}cp $TMPDIR/etcd /usr/local/bin/etcd ${RCol}"

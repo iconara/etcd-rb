@@ -61,12 +61,12 @@ class EtcdCluster
     server_port   = SERVER_PORT_BASE + num
     client_port   = CLIENT_PORT_BASE + num
     master_option = ''
-    master_option = "-C=127.0.0.1:#{SERVER_PORT_BASE + 1}" if num > 1
+    master_option = "-peers=127.0.0.1:#{SERVER_PORT_BASE + 1}" if num > 1
     cmd = %Q(#{bin_path} -vv \
-        -n=#{node_name} \
-        -d=tmp/etcd/#{node_name} \
-        -s=127.0.0.1:#{server_port} \
-        -c=127.0.0.1:#{client_port}  #{master_option} >> tmp/etcd/#{node_name}.out & 2>&1)
+        -name=#{node_name} \
+        -data-dir=tmp/etcd/#{node_name} \
+        -peer-addr=127.0.0.1:#{server_port} \
+        -addr=127.0.0.1:#{client_port}  #{master_option} >> tmp/etcd/#{node_name}.out & 2>&1)
   end
 
   def stop
