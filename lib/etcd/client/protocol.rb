@@ -140,7 +140,8 @@ module Etcd
     # @yieldparam [Hash] info the info for the key that changed
     # @return [Object] the result of the given block
     def watch(prefix, options={})
-      options.merge!(wait: true)
+      options.merge!(wait: 'true')
+      options.delete(:index) if options.has_key?(:index) && options[:index].nil?
       data = request_data(:get, watch_uri(prefix), query: options)
       info = extract_info(data)
       yield info[:value], info[:key], info
@@ -159,6 +160,7 @@ private
 
     def extract_info(data)
       node = data[S_NODE]
+      return {} unless node
       info = {
         :key   => node[S_KEY],
         :value => node[S_VALUE],

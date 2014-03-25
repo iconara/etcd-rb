@@ -7,7 +7,7 @@ module Etcd
     include ClientHelper
 
     def base_uri
-      "http://127.0.0.1:4001/v1"
+      "http://127.0.0.1:4001/v2"
     end
 
     let :client do
@@ -16,20 +16,20 @@ module Etcd
 
     describe '#watch' do
       it 'sends a GET request for a watch of a key prefix' do
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {wait: 'true'}).to_return(body: MultiJson.dump({}))
         client.watch('/foo') { }
-        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {})
+        WebMock.should have_requested(:get, "#{base_uri}/keys/foo").with(query: {wait: 'true'})
       end
 
       it 'sends a GET request for a watch of a key prefix from a specified index' do
-        stub_request(:post, "#{base_uri}/watch/foo").with(query: {'index' => 3}).to_return(body: MultiJson.dump({}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true', 'index' => 3}).to_return(body: MultiJson.dump({}))
         client.watch('/foo', index: 3) { }
-        WebMock.should have_requested(:post, "#{base_uri}/watch/foo").with(query: {'index' => 3})
+        WebMock.should have_requested(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true', 'index' => 3})
       end
 
       it 'yields the value' do
-        body = MultiJson.dump({'value' => 'bar'})
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        body = MultiJson.dump({'node' => {'value' => 'bar'}})
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: body)
         value = nil
         client.watch('/foo') do |v|
           value = v
@@ -38,8 +38,8 @@ module Etcd
       end
 
       it 'yields the changed key' do
-        body = MultiJson.dump({'key' => '/foo/bar', 'value' => 'bar'})
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        body = MultiJson.dump({'node' => {'key' => '/foo/bar', 'value' => 'bar'}})
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: body)
         key = nil
         client.watch('/foo') do |_, k|
           key = k
@@ -48,8 +48,8 @@ module Etcd
       end
 
       it 'yields info about the key, when it is a new key' do
-        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'newKey' => true})
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        body = MultiJson.dump({'action' => 'SET', 'node' => {'key' => '/foo/bar', 'value' => 'bar', 'index' => 3}})
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: body)
         info = nil
         client.watch('/foo') do |_, _, i|
           info = i
@@ -62,8 +62,8 @@ module Etcd
       end
 
       it 'yields info about the key, when the key was changed' do
-        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'prevValue' => 'baz', 'index' => 3})
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        body = MultiJson.dump({'action' => 'set', 'node' => {'key' => '/foo/bar', 'value' => 'bar', 'index' => 3}, 'prevNode' => {'value' => 'baz'}})
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: body)
         info = nil
         client.watch('/foo') do |_, _, i|
           info = i
@@ -76,8 +76,8 @@ module Etcd
       end
 
       it 'yields info about the key, when the key has a TTL' do
-        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        body = MultiJson.dump({'action' => 'set', 'node' => {'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7}})
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: body)
         info = nil
         client.watch('/foo') do |_, _, i|
           info = i
@@ -92,8 +92,8 @@ module Etcd
       end
 
       it 'returns the return value of the block' do
-        body = MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: body)
+        body = MultiJson.dump({'action' => 'set', 'node' => {'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7}})
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: body)
         return_value = client.watch('/foo') do |_, k, _|
           k
         end
@@ -104,7 +104,7 @@ module Etcd
 
     describe '#observe' do
       it 'watches the specified key prefix' do
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: MultiJson.dump({'node' => {}}))
         barrier = Queue.new
         observer = client.observe('/foo') do
           barrier << :ping
@@ -112,12 +112,12 @@ module Etcd
           observer.join
         end
         barrier.pop
-        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {})
+        WebMock.should have_requested(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'})
       end
 
       it 're-watches the prefix with the (last seen index + 1)  immediately' do
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({'index' => 3}))
-        stub_request(:post, "#{base_uri}/watch/foo").with(query: {'index' => 4}).to_return(body: MultiJson.dump({'index' => 4}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: MultiJson.dump({'node' => {'index' => 3}}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true', 'index' => 4}).to_return(body: MultiJson.dump({'node' => {'index' => 4}}))
         barrier = Queue.new
         observer = client.observe('/foo') do |_, _, info|
           if info[:index] == 4
@@ -127,14 +127,14 @@ module Etcd
           end
         end
         barrier.pop
-        WebMock.should have_requested(:get, "#{base_uri}/watch/foo").with(query: {})
-        WebMock.should have_requested(:post, "#{base_uri}/watch/foo").with(query: {'index' => 4})
+        WebMock.should have_requested(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'})
+        WebMock.should have_requested(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true', 'index' => 4})
       end
 
       it 'yields the value, key and info to the block given' do
-        stub_request(:get, "#{base_uri}/watch/foo").with(query: {}).to_return(body: MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 3, 'newKey' => true}))
-        stub_request(:post, "#{base_uri}/watch/foo").with(query: {'index' => 4}).to_return(body: MultiJson.dump({'action' => 'DELETE', 'key' => '/foo/baz', 'value' => 'foo', 'index' => 4}))
-        stub_request(:post, "#{base_uri}/watch/foo").with(query: {'index' => 5}).to_return(body: MultiJson.dump({'action' => 'SET', 'key' => '/foo/bar', 'value' => 'hello', 'index' => 5}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true'}).to_return(body: MultiJson.dump({'action' => 'set', 'node' => {'key' => '/foo/bar', 'value' => 'bar', 'index' => 3}}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true', 'index' => 4}).to_return(body: MultiJson.dump({'action' => 'delete', 'node' => {'key' => '/foo/baz', 'value' => 'foo', 'index' => 4}, 'prevNode' => {}}))
+        stub_request(:get, "#{base_uri}/keys/foo").with(query: {'wait' => 'true', 'index' => 5}).to_return(body: MultiJson.dump({'action' => 'set', 'node' => {'key' => '/foo/bar', 'value' => 'hello', 'index' => 5}, 'prevNode' => {}}))
         barrier = Queue.new
         values   = []
         keys     = []
@@ -155,7 +155,7 @@ module Etcd
         values.should   == %w[bar foo hello]
         keys.should     == %w[/foo/bar /foo/baz /foo/bar]
         actions.should  == [:set, :delete, :set]
-        new_keys.should == [true, nil, nil]
+        new_keys.should == [true, false, false]
       end
     end
 

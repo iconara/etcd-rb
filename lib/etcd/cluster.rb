@@ -16,6 +16,7 @@ module Etcd
         begin
           logger.debug("cluster_status - from #{uri}")
           data = request_data(:get, status_uri(uri))
+          puts status_uri(uri)
           parse_cluster_status(data)
         rescue Errno::ECONNREFUSED => e
           logger.debug("cluster_status - error!")

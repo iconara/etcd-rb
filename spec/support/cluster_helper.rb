@@ -1,22 +1,26 @@
 module ClusterHelper
   def status_data
-    [
-      {"action"=>"GET",
-      "key"=>"/_etcd/machines/node1",
-      "value"=>
-       "raft=http://127.0.0.1:7001&etcd=http://127.0.0.1:4001&raftVersion=v0.1.1",
-      "index"=>360},
-     {"action"=>"GET",
-      "key"=>"/_etcd/machines/node2",
-      "value"=>
-       "raft=http://127.0.0.1:7002&etcd=http://127.0.0.1:4002&raftVersion=v0.1.1",
-      "index"=>360},
-     {"action"=>"GET",
-      "key"=>"/_etcd/machines/node3",
-      "value"=>
-       "raft=http://127.0.0.1:7003&etcd=http://127.0.0.1:4003&raftVersion=v0.1.1",
-      "index"=>360}
-    ]
+    {"node" =>
+      {"nodes" => 
+        [
+          {
+          "key"=>"/_etcd/machines/node1",
+          "value"=>
+           "raft=http://127.0.0.1:7001&etcd=http://127.0.0.1:4001&raftVersion=v0.1.1",
+          "index"=>360},
+         {
+          "key"=>"/_etcd/machines/node2",
+          "value"=>
+           "raft=http://127.0.0.1:7002&etcd=http://127.0.0.1:4002&raftVersion=v0.1.1",
+          "index"=>360},
+         {
+          "key"=>"/_etcd/machines/node3",
+          "value"=>
+           "raft=http://127.0.0.1:7003&etcd=http://127.0.0.1:4003&raftVersion=v0.1.1",
+          "index"=>360}
+        ]
+      }
+    }
   end
 
   def healthy_cluster_config
@@ -52,7 +56,7 @@ module ClusterHelper
 
 
   def leader_uri(uri)
-    "#{uri}/v1/leader"
+    "#{uri}/v2/leader"
   end
 
   def stub_leader_uri(uri, opts = {})
