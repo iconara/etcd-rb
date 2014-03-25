@@ -16,7 +16,7 @@ module Etcd
       body       = {:value => value}
       body[:ttl] = options[:ttl] if options[:ttl]
       data       = request_data(:PUT, key_uri(key), body: body)
-      data[S_PREV_NODE][S_VALUE] if data
+      data[S_PREV_NODE][S_VALUE] if data && data[S_PREV_NODE]
     end
 
     # Gets the value or values for a key.
@@ -71,7 +71,7 @@ module Etcd
     def delete(key)
       data = request_data(:delete, key_uri(key))
       return nil unless data
-      data[S_PREV_VALUE]
+      data[S_PREV_NODE][S_VALUE]
     end
 
     # Returns true if the specified key exists.
@@ -102,8 +102,8 @@ module Etcd
     def info(key)
       data = request_data(:get, uri(key))
       return nil unless data
-      if data.is_a?(Array)
-        data.each_with_object({}) do |d, acc|
+      if nodes = data[S_NODE][S_NODES]
+        nodes.each_with_object({}) do |d, acc|
           info = extract_info(d)
           info.delete(:action)
           acc[info[:key]] = info
@@ -159,7 +159,11 @@ module Etcd
 private
 
     def extract_info(data)
-      node = data[S_NODE]
+      if data[S_NODE]
+        node = data[S_NODE]
+      else
+        node = data
+      end
       return {} unless node
       info = {
         :key   => node[S_KEY],
@@ -172,7 +176,7 @@ private
       previous_node         = data[S_PREV_NODE]
       info[:expiration]     = Time.iso8601(expiration_s) if expiration_s
       info[:ttl]            = ttl if ttl
-      info[:dir]            = data[S_DIR] if data.include?(S_DIR)
+      info[:dir]            = node[S_DIR] if node.include?(S_DIR)
       info[:previous_value] = previous_node[S_VALUE] if previous_node
       info[:action]         = action_s.downcase.to_sym if action_s
       info[:new_key]        = !data[S_PREV_NODE]

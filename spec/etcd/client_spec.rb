@@ -7,7 +7,7 @@ module Etcd
     include ClientHelper
 
     def base_uri
-      "http://127.0.0.1:4001/v1"
+      "http://127.0.0.1:4001/v2"
     end
 
     let :client do
@@ -16,7 +16,7 @@ module Etcd
 
     describe '#get' do
       before do
-        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'node' => {'value' => 'bar'}}))
       end
 
       it 'sends a GET request to retrieve the value for a key' do
@@ -40,10 +40,10 @@ module Etcd
 
       context 'when listing a prefix' do
         it 'returns a hash of keys and their values' do
-          values = [
+          values = {'node' => {'nodes' => [
             {'key' => '/foo/bar', 'value' => 'bar'},
-            {'key' => '/foo/baz', 'value' => 'baz'},
-          ]
+            {'key' => '/foo/baz', 'value' => 'baz'}
+          ]}}
           stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump(values))
           client.get('/foo').should eql({'/foo/bar' => 'bar', '/foo/baz' => 'baz'})
         end
@@ -53,65 +53,65 @@ module Etcd
 
     describe '#set' do
       before do
-        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+        stub_request(:put, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevNode' => {'value' => 1}}))
       end
 
-      it 'sends a POST request to set the value for a key' do
+      it 'sends a PUT request to set the value for a key' do
         client.set('/foo', 'bar')
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar')
+        WebMock.should have_requested(:put, "#{base_uri}/keys/foo").with(body: 'value=bar')
       end
 
       it 'prepends a slash to keys when necessary' do
         client.set('foo', 'bar')
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar')
+        WebMock.should have_requested(:put, "#{base_uri}/keys/foo").with(body: 'value=bar')
       end
 
       it 'parses the response and returns the previous value' do
-        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevValue' => 'baz'}))
+        stub_request(:put, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevNode' => {'value' => 'baz'}}))
         client.set('/foo', 'bar').should == 'baz'
       end
 
       it 'returns nil when there is no previous value' do
-        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+        stub_request(:put, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
         client.set('/foo', 'bar').should be_nil
       end
 
       it 'sets a TTL when the :ttl option is given' do
         client.set('/foo', 'bar', ttl: 3)
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar&ttl=3')
+        WebMock.should have_requested(:put, "#{base_uri}/keys/foo").with(body: 'value=bar&ttl=3')
       end
     end
 
     describe '#update' do
       before do
-        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+        stub_request(:put, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
       end
 
       it 'sends a POST request to set the value conditionally' do
         client.update('/foo', 'bar', 'baz')
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar&prevValue=baz')
+        WebMock.should have_requested(:put, "#{base_uri}/keys/foo").with(body: 'value=bar&prevValue=baz')
       end
 
       it 'returns true when the key is successfully changed' do
-        stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+        stub_request(:put, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
         client.update('/foo', 'bar', 'baz').should be_true
       end
 
       it 'returns false when an error is returned' do
-        stub_request(:post, "#{base_uri}/keys/foo").to_return(status: 400, body: MultiJson.dump({}))
+        stub_request(:put, "#{base_uri}/keys/foo").to_return(status: 400, body: MultiJson.dump({}))
         client.update('/foo', 'bar', 'baz').should be_false
       end
 
       it 'sets a TTL when the :ttl option is given' do
         client.update('/foo', 'bar', 'baz', ttl: 3)
-        WebMock.should have_requested(:post, "#{base_uri}/keys/foo").with(body: 'value=bar&prevValue=baz&ttl=3')
+        WebMock.should have_requested(:put, "#{base_uri}/keys/foo").with(body: 'value=bar&prevValue=baz&ttl=3')
       end
     end
 
 
     describe '#delete' do
       before do
-        stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
+        stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevNode' => {'value' => 1}}))
       end
 
       it 'sends a DELETE request to remove a key' do
@@ -120,7 +120,7 @@ module Etcd
       end
 
       it 'returns the previous value' do
-        stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevValue' => 'bar'}))
+        stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevNode' => {'value' => 'bar'}}))
         client.delete('/foo').should == 'bar'
       end
 
@@ -132,7 +132,7 @@ module Etcd
 
     describe '#exists?' do
       it 'returns true if the key has a value' do
-        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
+        stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'node' => {'value' => 'bar'}}))
         client.exists?('/foo').should be_true
       end
 
@@ -144,7 +144,7 @@ module Etcd
 
     describe '#info' do
       it 'returns the key, value, index, expiration and TTL for a key' do
-        body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7})
+        body = MultiJson.dump({'action' => 'get', 'node' => {'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7}})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
         info[:key].should == '/foo'
@@ -156,7 +156,7 @@ module Etcd
       end
 
       it 'returns the dir flag' do
-        body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'dir' => true})
+        body = MultiJson.dump({'action' => 'get', 'node' => {'key' => '/foo', 'dir' => true}})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
         info[:key].should == '/foo'
@@ -164,7 +164,7 @@ module Etcd
       end
 
       it 'returns only the pieces of information that are returned' do
-        body = MultiJson.dump({'action' => 'GET', 'key' => '/foo', 'value' => 'bar', 'index' => 31})
+        body = MultiJson.dump({'action' => 'get', 'node' => {'key' => '/foo', 'value' => 'bar', 'index' => 31}})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
         info[:key].should == '/foo'
@@ -179,12 +179,13 @@ module Etcd
 
       context 'when listing a prefix' do
         it 'returns a hash of keys and their info' do
-          body = MultiJson.dump([
+          body = MultiJson.dump({'node' => {'nodes' => [
             {'action' => 'GET', 'key' => '/foo/bar', 'value' => 'bar', 'index' => 31},
             {'action' => 'GET', 'key' => '/foo/baz', 'value' => 'baz', 'index' => 55},
-          ])
+          ]}})
           stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
           info = client.info('/foo')
+          puts info
           info['/foo/bar'][:key].should == '/foo/bar'
           info['/foo/baz'][:key].should == '/foo/baz'
           info['/foo/bar'][:value].should == 'bar'
@@ -216,8 +217,8 @@ module Etcd
 
         with_stubbed_leaders(healthy_cluster_changed_leader_config)
 
-        stub_request(:post, "#{etcd1_uri}/v1/keys/foo").to_return(status: 307, headers: {'Location' => "#{etcd2_uri}/v1/keys/foo"})
-        stub_request(:post, "#{etcd2_uri}/v1/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
+        stub_request(:put, "#{etcd1_uri}/v2/keys/foo").to_return(status: 307, headers: {'Location' => "#{etcd2_uri}/v2/keys/foo"})
+        stub_request(:put, "#{etcd2_uri}/v2/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
         client.set("foo", "bar")
         client.leader.etcd.should == etcd2_uri
         client.leader.name.should == "node2"

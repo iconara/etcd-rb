@@ -93,7 +93,7 @@ module Etcd
       describe '#new' do
         it "will not request any info on initialization" do
           cluster = Etcd::Cluster.new(cluster_uri)
-          WebMock.should_not have_requested(:get, "http://127.0.0.1:4001/v1/keys/_etcd/machines/")
+          WebMock.should_not have_requested(:get, "http://127.0.0.1:4001/v2/keys/_etcd/machines/")
         end
       end
 
