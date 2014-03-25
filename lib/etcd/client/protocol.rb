@@ -16,7 +16,7 @@ module Etcd
       body       = {:value => value}
       body[:ttl] = options[:ttl] if options[:ttl]
       data       = request_data(:post, key_uri(key), body: body)
-      data[S_PREV_VALUE]
+      data[S_PREV_NODE][S_VALUE]
     end
 
     # Gets the value or values for a key.
@@ -30,13 +30,7 @@ module Etcd
     def get(key)
       data = request_data(:get, key_uri(key))
       return nil unless data
-      if data.is_a?(Array)
-        data.each_with_object({}) do |e, acc|
-          acc[e[S_KEY]] = e[S_VALUE]
-        end
-      else
-        data[S_VALUE]
-      end
+      return data['node']
     end
 
     # Atomically sets the value for a key if the current value for the key
@@ -140,12 +134,7 @@ module Etcd
     # @yieldparam [Hash] info the info for the key that changed
     # @return [Object] the result of the given block
     def watch(prefix, options={})
-      if options[:index]
-        parameters = {:index => options[:index]}
-        data       = request_data(:post, watch_uri(prefix), query: parameters)
-      else
-        data       = request_data(:get, watch_uri(prefix), query: {})
-      end
+      data       = request_data(:get, watch_uri(prefix), query: options)
 
       info         = extract_info(data)
       yield info[:value], info[:key], info

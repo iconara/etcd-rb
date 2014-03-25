@@ -84,7 +84,7 @@ private
     def uri(key, action=S_KEYS)
       raise AllNodesDownError unless leader
       key = "/#{key}" unless key.start_with?(S_SLASH)
-      "#{leader_uri}/v1/#{action}#{key}"
+      "#{leader_uri}/v2/#{action}#{key}"
     end
 
 

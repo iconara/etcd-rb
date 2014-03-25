@@ -31,8 +31,8 @@ module Etcd
     #
     # @return [#cancel, #join] an observer object which you can call cancel and
     #   join on
-    def observe(prefix, &handler)
-      ob = Observer.new(self, prefix, handler).tap(&:run)
+    def observe(prefix, options = {}, &handler)
+      ob = Observer.new(self, prefix, handler, options).tap(&:run)
       @observers[prefix] = ob
       ob
     end

@@ -24,11 +24,12 @@ module Etcd
       end
 
       def status_uri(uri)
-        "#{uri}/v1/keys/_etcd/machines/"
+        "#{uri}/v2/keys/_etcd/machines/"
       end
 
       def parse_cluster_status(cluster_status_response)
-        cluster_status_response.map do |attrs|
+        p cluster_status_response['node']['nodes']
+        cluster_status_response['node']['nodes'].map do |attrs|
           node_name = attrs[S_KEY].split(S_SLASH).last
           urls      = attrs[S_VALUE].split(S_AND)
           etcd      = urls.grep(/etcd/).first.split("=").last

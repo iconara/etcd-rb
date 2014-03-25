@@ -10,7 +10,7 @@ module Etcd
     end
 
     def request(method, uri, args={})
-      logger.debug("request - #{method} #{uri} #{args.inspect}")
+      puts("request - #{method} #{uri} #{args.inspect}")
       http_client.request(method, uri, args.merge(follow_redirect: true))
     end
 
