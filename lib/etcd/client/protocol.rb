@@ -58,7 +58,7 @@ module Etcd
     def update(key, value, expected_value, options={})
       body       = {:value => value, :prevValue => expected_value}
       body[:ttl] = options[:ttl] if options[:ttl]
-      data       = request_data(:post, key_uri(key), body: body)
+      data       = request_data(:put, key_uri(key), body: body)
       !! data
     end
 
