@@ -94,12 +94,12 @@ module Etcd
 
       it 'returns true when the key is successfully changed' do
         stub_request(:post, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({}))
-        client.update('/foo', 'bar', 'baz').should be_true
+        client.update('/foo', 'bar', 'baz').should eq(true)
       end
 
       it 'returns false when an error is returned' do
         stub_request(:post, "#{base_uri}/keys/foo").to_return(status: 400, body: MultiJson.dump({}))
-        client.update('/foo', 'bar', 'baz').should be_false
+        client.update('/foo', 'bar', 'baz').should eq(false)
       end
 
       it 'sets a TTL when the :ttl option is given' do
@@ -133,12 +133,12 @@ module Etcd
     describe '#exists?' do
       it 'returns true if the key has a value' do
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
-        client.exists?('/foo').should be_true
+        client.exists?('/foo').should eq(true)
       end
 
       it 'returns false if the key does not exist' do
         stub_request(:get, "#{base_uri}/keys/foo").to_return(status: 404, body: 'Not found')
-        client.exists?('/foo').should be_false
+        client.exists?('/foo').should eq(false)
       end
     end
 
@@ -160,7 +160,7 @@ module Etcd
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
         info[:key].should == '/foo'
-        info[:dir].should be_true
+        info[:dir].should eq(true)
       end
 
       it 'returns only the pieces of information that are returned' do

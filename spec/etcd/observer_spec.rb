@@ -58,7 +58,7 @@ module Etcd
         info[:key].should == '/foo/bar'
         info[:value].should == 'bar'
         info[:index].should == 3
-        info[:new_key].should be_true
+        info[:new_key].should eq(true)
       end
 
       it 'yields info about the key, when the key was changed' do

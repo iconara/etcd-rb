@@ -152,7 +152,7 @@ module Etcd
               cluster = Etcd::Cluster.new(cluster_uri)
               leader = cluster.leader
               leader.etcd.should == cluster_uri
-              leader.is_leader.should be_true
+              leader.is_leader.should eq(true)
             end
           end
         end

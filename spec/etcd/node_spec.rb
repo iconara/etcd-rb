@@ -41,17 +41,17 @@ module Etcd
         node = default_node
         stub_request(:get, node.leader_uri).to_return(body: node.raft)
         node.update_status
-        node.is_leader.should be_true
+        node.is_leader.should eq(true)
       end
 
       it "marks leader-flag as :false if leader looses leadership" do
         node = default_node
         stub_request(:get, node.leader_uri).to_return(body: node.raft)
         node.update_status
-        node.is_leader.should be_true
+        node.is_leader.should eq(true)
         stub_request(:get, node.leader_uri).to_return(body: "bla")
         node.update_status
-        node.is_leader.should be_false
+        node.is_leader.should eq(false)
       end
     end
   end
