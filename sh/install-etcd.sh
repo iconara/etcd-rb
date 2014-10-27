@@ -28,6 +28,9 @@ go_version(){
   if [ $os == 'darwin' ]; then
     osx_version='-osx'$(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1)
   fi
+  if [ $osx_version == '-osx10.9' ]; then
+    osx_version='-osx10.8'
+  fi
 
   echo $os-$arch$osx_version
 }
@@ -46,9 +49,9 @@ cd $TMPDIR
 
 ## download everything
 #file="go1.1.2.$(go_version).tar.gz"
-file="go1.2rc2.$(go_version).tar.gz"
+file="go1.2.2.$(go_version).tar.gz"
 if [ ! -e $file ]; then
-  wget https://go.googlecode.com/files/$file
+  wget https://storage.googleapis.com/golang/$file
 else
   log_debug "$file already downloaded..."
 fi
