@@ -72,9 +72,10 @@ fi
 
 
 export GOBIN=$TMPDIR/go/bin
+export GOROOT=$TMPDIR/go
 export PATH=$GOBIN:$PATH
 cd etcd-repo
-git checkout origin/master
+git checkout v0.1.2
 ./build
 cd ..
 cp etcd-repo/etcd .
