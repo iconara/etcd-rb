@@ -9,6 +9,7 @@
   - Linux/OSX OS
   - to have a local Etcd binary, run
     - `$ sh/install-etcd.sh`
+  - etcd 1.x
 
 # Installation
 
@@ -19,7 +20,7 @@
 ```ruby
 require 'etcd'
 
-client = Etcd::Client.connect(uris: 'http://localhost:4001')
+client = Etcd::Client.new(uris: 'http://localhost:4001')
 client.connect
 client.set('/foo', 'bar')
 client.get('/foo')
