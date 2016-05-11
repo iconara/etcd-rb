@@ -55,8 +55,8 @@ describe 'With real server an etcd client' do
 
   it 'conditionally sets the value for a key' do
     client.set(key, 'bar')
-    client.update(key, 'qux', 'baz').should be_false
-    client.update(key, 'qux', 'bar').should be_true
+    client.update(key, 'qux', 'baz').should eq(false)
+    client.update(key, 'qux', 'bar').should eq(true)
   end
 
 

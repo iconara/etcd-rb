@@ -29,6 +29,9 @@ go_version(){
     #osx_version='-osx'$(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1)
     osx_version='-osx10.8'
   fi
+  if [ $osx_version == '-osx10.9' ]; then
+    osx_version='-osx10.8'
+  fi
 
   echo $os-$arch$osx_version
 }
@@ -47,9 +50,9 @@ cd $TMPDIR
 
 ## download everything
 #file="go1.1.2.$(go_version).tar.gz"
-file="go1.2.1.$(go_version).tar.gz"
+file="go1.2.2.$(go_version).tar.gz"
 if [ ! -e $file ]; then
-  wget https://go.googlecode.com/files/$file
+  wget https://storage.googleapis.com/golang/$file
 else
   log_debug "$file already downloaded..."
 fi
@@ -73,7 +76,7 @@ export GOBIN=$TMPDIR/go/bin
 export GOROOT=$TMPDIR/go
 export PATH=$GOBIN:$PATH
 cd etcd-repo
-git checkout origin/master
+git checkout v0.1.2
 ./build
 cd ..
 cp etcd-repo/bin/etcd .
