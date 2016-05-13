@@ -1,1 +1,1 @@
-COVERAGE=no bundle exec rspec
+COVERAGE=no bundle exec rspec -fd -b

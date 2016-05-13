@@ -15,19 +15,8 @@ module Etcd
         it "returns parsed data" do
           with_stubbed_status(cluster_uri) do
             res = Etcd::Cluster.cluster_status(cluster_uri)
-            res[0][:name].should == "node1"
+            res[0][:name].should eq("node1")
           end
-        end
-      end
-
-      describe '#parse_cluster_status' do
-        it "works with correct parsed json" do
-          res = Etcd::Cluster.parse_cluster_status(status_data)
-          res[0].should == {
-            :name => "node1",
-            :raft => "http://127.0.0.1:7001",
-            :etcd => "http://127.0.0.1:4001",
-          }
         end
       end
 
@@ -35,15 +24,15 @@ module Etcd
         it "returns node instances created from uri" do
           with_stubbed_status(cluster_uri) do
             nodes = Etcd::Cluster.nodes_from_uri(cluster_uri)
-            nodes.size.should == 3
-            nodes.first.class.should == Etcd::Node
+            nodes.size.should eq(3)
+            nodes.first.class.should eq(Etcd::Node)
           end
         end
 
         it "but those instances have no real status yet" do
           with_stubbed_status(cluster_uri) do
             nodes = Etcd::Cluster.nodes_from_uri(cluster_uri)
-            nodes.size.should == 3
+            nodes.size.should eq(3)
             nodes.first.status == :unknown
           end
         end
@@ -55,9 +44,10 @@ module Etcd
             with_stubbed_status(cluster_uri) do
               with_stubbed_leaders(healthy_cluster_config) do
                 cluster = Etcd::Cluster.init_from_uris(cluster_uri)
+                puts "nodes: #{cluster}"
                 nodes = cluster.nodes
-                nodes.size.should == 3
-                nodes.map{|x| x.status}.uniq.should == [:running]
+                nodes.size.should eq(3)
+                nodes.map{|x| x.status}.uniq.should eq([:running])
               end
             end
           end
@@ -67,7 +57,7 @@ module Etcd
               with_stubbed_leaders(healthy_cluster_config) do
                 cluster = Etcd::Cluster.init_from_uris(cluster_uri)
                 leader  = cluster.leader
-                leader.etcd.should == cluster_uri
+                expect(leader.client_urls.first).to eq(cluster_uri)
               end
             end
           end
@@ -80,8 +70,8 @@ module Etcd
               with_stubbed_leaders(one_down_cluster_config) do
                 cluster = Etcd::Cluster.init_from_uris(cluster_uri)
                 nodes = cluster.nodes
-                nodes.size.should == 3
-                nodes.map{|x| x.status}.uniq.should == [:running, :down]
+                nodes.size.should eq(3)
+                nodes.map{|x| x.status}.uniq.should eq([:running, :down])
               end
             end
           end
@@ -93,7 +83,7 @@ module Etcd
       describe '#new' do
         it "will not request any info on initialization" do
           cluster = Etcd::Cluster.new(cluster_uri)
-          WebMock.should_not have_requested(:get, "http://127.0.0.1:4001/v2/keys/_etcd/machines/")
+          WebMock.should_not have_requested(:get, "http://127.0.0.1:4001/v2/members/")
         end
       end
 
@@ -103,7 +93,7 @@ module Etcd
             with_stubbed_leaders(healthy_cluster_config) do
               cluster = Etcd::Cluster.new(cluster_uri)
               nodes   = cluster.nodes
-              nodes.size.should == 3
+              nodes.size.should eq(3)
             end
           end
         end
@@ -113,13 +103,13 @@ module Etcd
             with_stubbed_leaders(healthy_cluster_config) do
               cluster = Etcd::Cluster.new(cluster_uri)
               nodes   = cluster.nodes
-              nodes.map{|x| x.status}.uniq.should == [:running]
+              nodes.map{|x| x.status}.uniq.should eq([:running])
               with_stubbed_leaders(one_down_cluster_config) do
                 nodes   = cluster.nodes
                 nodes.map{|x| x.status}.uniq.should_not == [:running, :down]
                 # now update for real
                 nodes   = cluster.update_status
-                nodes.map{|x| x.status}.uniq.should == [:running, :down]
+                nodes.map{|x| x.status}.uniq.should eq([:running, :down])
               end
             end
           end
@@ -133,11 +123,11 @@ module Etcd
             with_stubbed_leaders(healthy_cluster_config) do
               cluster = Etcd::Cluster.new(cluster_uri)
               nodes   = cluster.update_status
-              nodes.size.should == 3
-              nodes.map{|x| x.status}.uniq.should == [:running]
+              nodes.size.should eq(3)
+              nodes.map{|x| x.status}.uniq.should eq([:running])
               with_stubbed_leaders(one_down_cluster_config) do
                 nodes   = cluster.update_status
-                nodes.map{|x| x.status}.uniq.should == [:running, :down]
+                nodes.map{|x| x.status}.uniq.should eq([:running, :down])
               end
             end
           end
@@ -151,8 +141,8 @@ module Etcd
             with_stubbed_leaders(healthy_cluster_config) do
               cluster = Etcd::Cluster.new(cluster_uri)
               leader = cluster.leader
-              leader.etcd.should == cluster_uri
-              leader.is_leader.should eq(true)
+              expect(leader.client_urls.first).to eq(cluster_uri)
+              expect(leader.is_leader).to eq(true)
             end
           end
         end
@@ -161,10 +151,10 @@ module Etcd
           with_stubbed_status(cluster_uri) do
             with_stubbed_leaders(healthy_cluster_config) do
               cluster = Etcd::Cluster.new(cluster_uri)
-              cluster.leader.etcd.should == cluster_uri
+              expect(cluster.leader.client_urls.first).to eq(cluster_uri)
               with_stubbed_leaders(healthy_cluster_changed_leader_config) do
-                nodes   = cluster.update_status
-                cluster.leader.etcd.should == "http://127.0.0.1:4002"
+                nodes = cluster.update_status
+                expect(cluster.leader.client_urls.first).to eq("http://127.0.0.1:4002")
               end
             end
           end

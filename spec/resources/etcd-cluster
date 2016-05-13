@@ -30,14 +30,14 @@ class EtcdCluster
   def start
     return puts "ETCD binary not found! Please install with $ sh/install-etcd.sh !" unless is_etcd_installed?
     ensure_data_path
-    (1..NODE_COUNT).to_a.each do |i|
+    1.upto(NODE_COUNT) do |i|
       cmd = start_node(i)
       fork do
         exec(cmd)
       end
     end
   end
-
+  
   def logs
     cmd = "tail -f tmp/etcd/node1.out tmp/etcd/node2.out tmp/etcd/node3.out"
     exec(cmd)
@@ -57,16 +57,21 @@ class EtcdCluster
   end
 
   def start_node(num)
-    node_name     = "node#{num}"
-    server_port   = SERVER_PORT_BASE + num
-    client_port   = CLIENT_PORT_BASE + num
-    master_option = ''
-    master_option = "-peers=127.0.0.1:#{SERVER_PORT_BASE + 1}" if num > 1
-    cmd = %Q(#{bin_path} -vv \
-        -name=#{node_name} \
-        -data-dir=tmp/etcd/#{node_name} \
-        -peer-addr=127.0.0.1:#{server_port} \
-        -addr=127.0.0.1:#{client_port}  #{master_option} >> tmp/etcd/#{node_name}.out & 2>&1)
+    node_name  = "node#{num}"
+    server_url = "http://127.0.0.1:#{SERVER_PORT_BASE + num}" 
+    client_url = "http://127.0.0.1:#{CLIENT_PORT_BASE + num}" 
+    all_nodes  = 1.upto(NODE_COUNT).map { |i| "node#{i}=http://127.0.0.1:#{SERVER_PORT_BASE + i}" }
+
+    cmd = %Q(#{bin_path} --debug \
+        --name #{node_name} \
+        --data-dir=tmp/etcd/#{node_name} \
+        --initial-advertise-peer-urls #{server_url} \
+        --listen-peer-urls #{server_url} \
+        --listen-client-urls #{client_url} \
+        --advertise-client-urls #{client_url} \
+        --initial-cluster-token my-etcd-cluster-token \
+        --initial-cluster #{all_nodes.join(',')} \
+        --initial-cluster-state new >> tmp/etcd/#{node_name}.out 2>&1 &)
   end
 
   def stop

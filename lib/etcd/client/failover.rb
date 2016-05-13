@@ -1,7 +1,5 @@
 module Etcd
   class Client
-
-
     # @param options [Hash]
     # @option options [Array] :uris (['http://127.0.0.1:4001']) seed uris with etcd cluster nodes
     # @option options [Float] :heartbeat_freq (0.0) check-frequency for leader status (in seconds)
@@ -34,7 +32,6 @@ module Etcd
       self
     end
 
-
     # Creates a Cluster-instance from `@seed_uris`
     # and stores the cluster leader information
     def update_cluster
@@ -59,9 +56,8 @@ module Etcd
     end
 
     def leader_uri
-      leader && leader.etcd
+      leader && leader.client_urls && leader.client_urls.first
     end
-
 
     def start_heartbeat_if_needed
       logger.debug("client - starting heartbeat")
@@ -77,8 +73,8 @@ module Etcd
       http_client.default_redirect_uri_callback(uri, response)
     end
 
+    private
 
-private
     # :uri and :request_data are the only methods calling :leader method
     # so they both need to handle the case for missing leader in cluster
     def uri(key, action=S_KEYS)
@@ -87,17 +83,16 @@ private
       "#{leader_uri}/v2/#{action}#{key}"
     end
 
-
     def request_data(method, uri, args={})
       logger.debug("request_data:  #{method} - #{uri} #{args.inspect}")
       begin
         super
       rescue Errno::ECONNREFUSED, HTTPClient::TimeoutError => e
         logger.debug("request_data:  re-election handling")
-        old_leader_uri = @leader.etcd
+        old_leader_uri = @leader.client_urls.first
         update_cluster
         if @leader
-          uri = uri.gsub(old_leader_uri, @leader.etcd)
+          uri = uri.gsub(old_leader_uri, @leader.client_urls.first)
           retry
         else
           raise AllNodesDownError

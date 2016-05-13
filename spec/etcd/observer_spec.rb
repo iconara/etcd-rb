@@ -34,7 +34,7 @@ module Etcd
         client.watch('/foo') do |v|
           value = v
         end
-        value.should == 'bar'
+        value.should eq('bar')
       end
 
       it 'yields the changed key' do
@@ -44,7 +44,7 @@ module Etcd
         client.watch('/foo') do |_, k|
           key = k
         end
-        key.should == '/foo/bar'
+        key.should eq('/foo/bar')
       end
 
       it 'yields info about the key, when it is a new key' do
@@ -54,10 +54,10 @@ module Etcd
         client.watch('/foo') do |_, _, i|
           info = i
         end
-        info[:action].should == :set
-        info[:key].should == '/foo/bar'
-        info[:value].should == 'bar'
-        info[:index].should == 3
+        info[:action].should eq(:set)
+        info[:key].should eq('/foo/bar')
+        info[:value].should eq('bar')
+        info[:index].should eq(3)
         info[:new_key].should eq(true)
       end
 
@@ -68,11 +68,11 @@ module Etcd
         client.watch('/foo') do |_, _, i|
           info = i
         end
-        info[:action].should == :set
-        info[:key].should == '/foo/bar'
-        info[:value].should == 'bar'
-        info[:index].should == 3
-        info[:previous_value].should == 'baz'
+        info[:action].should eq(:set)
+        info[:key].should eq('/foo/bar')
+        info[:value].should eq('bar')
+        info[:index].should eq(3)
+        info[:previous_value].should eq('baz')
       end
 
       it 'yields info about the key, when the key has a TTL' do
@@ -82,13 +82,13 @@ module Etcd
         client.watch('/foo') do |_, _, i|
           info = i
         end
-        info[:action].should == :set
-        info[:key].should == '/foo/bar'
-        info[:value].should == 'bar'
-        info[:index].should == 3
+        info[:action].should eq(:set)
+        info[:key].should eq('/foo/bar')
+        info[:value].should eq('bar')
+        info[:index].should eq(3)
         # rounding because of ruby 2.0 time parsing bug @see https://gist.github.com/mindreframer/6746829
-        info[:expiration].to_f.round.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round
-        info[:ttl].should == 7
+        info[:expiration].to_f.round.should eq((Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round)
+        info[:ttl].should eq(7)
       end
 
       it 'returns the return value of the block' do
@@ -97,7 +97,7 @@ module Etcd
         return_value = client.watch('/foo') do |_, k, _|
           k
         end
-        return_value.should == '/foo/bar'
+        return_value.should eq('/foo/bar')
       end
     end
 
@@ -152,10 +152,10 @@ module Etcd
           end
         end
         barrier.pop
-        values.should   == %w[bar foo hello]
-        keys.should     == %w[/foo/bar /foo/baz /foo/bar]
-        actions.should  == [:set, :delete, :set]
-        new_keys.should == [true, false, false]
+        values.should   eq(%w[bar foo hello])
+        keys.should     eq(%w[/foo/bar /foo/baz /foo/bar])
+        actions.should  eq([:set, :delete, :set])
+        new_keys.should eq([true, false, false])
       end
     end
 

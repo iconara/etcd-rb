@@ -2,6 +2,7 @@
 require 'spec_helper'
 
 module Etcd
+
   describe Client do
     include ClusterHelper
     include ClientHelper
@@ -30,7 +31,7 @@ module Etcd
       end
 
       it 'parses the response and returns the value' do
-        client.get('/foo').should == 'bar'
+        client.get('/foo').should eq('bar')
       end
 
       it 'returns nil if when the key does not exist' do
@@ -68,7 +69,7 @@ module Etcd
 
       it 'parses the response and returns the previous value' do
         stub_request(:put, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevNode' => {'value' => 'baz'}}))
-        client.set('/foo', 'bar').should == 'baz'
+        client.set('/foo', 'bar').should eq('baz')
       end
 
       it 'returns nil when there is no previous value' do
@@ -121,7 +122,7 @@ module Etcd
 
       it 'returns the previous value' do
         stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevNode' => {'value' => 'bar'}}))
-        client.delete('/foo').should == 'bar'
+        client.delete('/foo').should eq('bar')
       end
 
       it 'returns nil when there is no previous value' do
@@ -147,19 +148,19 @@ module Etcd
         body = MultiJson.dump({'action' => 'get', 'node' => {'key' => '/foo', 'value' => 'bar', 'index' => 31, 'expiration' => '2013-12-11T12:09:08.123+02:00', 'ttl' => 7}})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
-        info[:key].should == '/foo'
-        info[:value].should == 'bar'
-        info[:index].should == 31
+        info[:key].should eq('/foo')
+        info[:value].should eq('bar')
+        info[:index].should eq(31)
         # rounding because of ruby 2.0 time parsing bug @see https://gist.github.com/mindreframer/6746829
-        info[:expiration].to_f.round.should == (Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round
-        info[:ttl].should == 7
+        info[:expiration].to_f.round.should eq((Time.utc(2013, 12, 11, 10, 9, 8) + 0.123).to_f.round)
+        info[:ttl].should eq(7)
       end
 
       it 'returns the dir flag' do
         body = MultiJson.dump({'action' => 'get', 'node' => {'key' => '/foo', 'dir' => true}})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
-        info[:key].should == '/foo'
+        info[:key].should eq('/foo')
         info[:dir].should eq(true)
       end
 
@@ -167,9 +168,9 @@ module Etcd
         body = MultiJson.dump({'action' => 'get', 'node' => {'key' => '/foo', 'value' => 'bar', 'index' => 31}})
         stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
         info = client.info('/foo')
-        info[:key].should == '/foo'
-        info[:value].should == 'bar'
-        info[:index].should == 31
+        info[:key].should eq('/foo')
+        info[:value].should eq('bar')
+        info[:index].should eq(31)
       end
 
       it 'returns nil when the key does not exist' do
@@ -186,12 +187,12 @@ module Etcd
           stub_request(:get, "#{base_uri}/keys/foo").to_return(body: body)
           info = client.info('/foo')
           puts info
-          info['/foo/bar'][:key].should == '/foo/bar'
-          info['/foo/baz'][:key].should == '/foo/baz'
-          info['/foo/bar'][:value].should == 'bar'
-          info['/foo/baz'][:value].should == 'baz'
-          info['/foo/bar'][:index].should == 31
-          info['/foo/baz'][:index].should == 55
+          info['/foo/bar'][:key].should eq('/foo/bar')
+          info['/foo/baz'][:key].should eq('/foo/baz')
+          info['/foo/bar'][:value].should eq('bar')
+          info['/foo/baz'][:value].should eq('baz')
+          info['/foo/bar'][:index].should eq(31)
+          info['/foo/baz'][:index].should eq(55)
         end
       end
     end
@@ -212,16 +213,16 @@ module Etcd
         with_stubbed_leaders(healthy_cluster_config)
 
         client = Etcd::Client.connect(:uris => etcd1_uri)
-        client.leader.etcd.should == etcd1_uri
-        client.leader.name.should == "node1"
+        client.leader.client_urls.first.should eq(etcd1_uri)
+        client.leader.name.should eq("node1")
 
         with_stubbed_leaders(healthy_cluster_changed_leader_config)
 
         stub_request(:put, "#{etcd1_uri}/v2/keys/foo").to_return(status: 307, headers: {'Location' => "#{etcd2_uri}/v2/keys/foo"})
         stub_request(:put, "#{etcd2_uri}/v2/keys/foo").to_return(body: MultiJson.dump({'value' => 'bar'}))
         client.set("foo", "bar")
-        client.leader.etcd.should == etcd2_uri
-        client.leader.name.should == "node2"
+        client.leader.client_urls.first.should eq(etcd2_uri)
+        client.leader.name.should eq("node2")
       end
     end
 

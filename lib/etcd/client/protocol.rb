@@ -1,3 +1,12 @@
+# Implements the etcd V2 client API
+#
+# Sample API requests/responses
+# $ curl -L http://127.0.0.1:4001/v2/keys
+# {"action":"get","node":{"dir":true,"nodes":[{"key":"/foo","value":"bar","modifiedIndex":22,"createdIndex":22}]}}
+#
+# $ curl -L http://127.0.0.1:4001/v2/keys/foo
+# {"action":"get","node":{"key":"/foo","value":"bar","modifiedIndex":22,"createdIndex":22}}
+
 module Etcd
   class Client
 
@@ -182,7 +191,6 @@ private
       info[:new_key]        = !data[S_PREV_NODE]
       info
     end
-
 
   end
 end

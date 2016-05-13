@@ -13,7 +13,7 @@ module Etcd
     # Initiates heartbeating the leader node in a background thread
     # ensures, that observers are refreshed after leader re-election
     def start_heartbeat_if_needed
-      logger.debug ("start_heartbeat_if_needed - enter")
+      logger.debug("start_heartbeat_if_needed - enter")
       return if freq == 0
       return if @heartbeat_thread
       @heartbeat_thread = Thread.new do
