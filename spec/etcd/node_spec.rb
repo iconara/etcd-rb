@@ -3,19 +3,19 @@ require 'spec_helper'
 
 module Etcd
   describe Node do
-    
+
     let :node_data do
       [
        {"id" => "14306b09b8d69fc4","name" => "node1","peerURLs"=> ["http://127.0.0.1:7001"],"clientURLs" => ["http://127.0.0.1:4001"]},
        {"id" => "d2356cd527a56a4","name" => "node2","peerURLs" => ["http://127.0.0.1:7002"],"clientURLs" => ["http://127.0.0.1:4002"]}
       ]
     end
-    
+
     def default_node(opts = {})
       data = Etcd::Node.parse_node_data(node_data[0])
       Etcd::Node.new(data.merge(opts))
     end
-    
+
     describe '#initialize' do
       it "works with all required parameters" do
         default_node({}).should_not be_nil

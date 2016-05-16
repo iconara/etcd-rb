@@ -24,7 +24,7 @@ describe 'With real server an etcd client' do
     ClusterController.start_cluster
     sleep 2 # wait a little for the cluster to come up
   end
-  
+
   after(:all) do
     ClusterController.stop_cluster
   end
@@ -65,10 +65,10 @@ describe 'With real server an etcd client' do
     client.update(key, 'qux', 'bar').should eq(true)
   end
 
-  # FIXME: this test does not pass consistently. There seem to issues 
+  # FIXME: this test does not pass consistently. There seem to issues
   # with the leader re-election handling (causing Errno::ECONNREFUSED)
   it "has heartbeat, that resets observed watches" do
-    client = Etcd::Client.test_client(:heartbeat_freq => 0.2)
+    client = Etcd::Client.test_client(:heartbeat_freq => 0.1)
     puts client.cluster.nodes.map(&:inspect)
     client.cluster.nodes.map(&:status).uniq.should eq([:running])
     changes = Queue.new
@@ -96,7 +96,7 @@ describe 'With real server an etcd client' do
     a.join
     changes.size.should eq(2)
 
-    # restore cluster    
+    # restore cluster
     ClusterController.stop_cluster
     ClusterController.start_cluster
     sleep 2

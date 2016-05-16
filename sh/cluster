@@ -1,1 +1,2 @@
+#!/usr/bin/env bash
 ./spec/resources/etcd-cluster $1
