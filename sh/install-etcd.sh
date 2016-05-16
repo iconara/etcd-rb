@@ -3,82 +3,40 @@
 # Exit if any error is encountered:
 set -o errexit
 
-# https://go.googlecode.com/files/go1.1.2.linux-386.tar.gz
-# https://go.googlecode.com/files/go1.1.2.darwin-amd64.tar.gz
-# uname -m (x86_64/386)
-# uname (Linux/Darwin)
-go_version(){
-  local arch
-  local os
-  local osx_version
-  if [[ $(uname -m) =~ ^x86_64.* ]]; then
-    arch='amd64'
-  else
-    arch='386'
-  fi
-
-  if [[ $(uname) =~ ^Darwin.* ]]; then
-    os='darwin'
-  else
-    os='linux'
-  fi
-
-  ## osx version
-  # sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1
-  if [ $os == 'darwin' ]; then
-    osx_version='-osx'$(sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*'|head -n 1)
-  fi
-  if [ $osx_version == '-osx10.9' ]; then
-    osx_version='-osx10.8'
-  fi
-
-  echo $os-$arch$osx_version
-}
-
-
+ETCD_VERSION='2.3.3'
 
 ## set the work directory
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(pwd)/$(dirname $0)"
 source $DIR/color-functions.sh
 
-TMPDIR="$DIR/../tmp/install"
-log_info "Will download golang, clone etcd repo and compile it into ${Red}tmp/install${RCol}"
+TMPDIR="$(dirname $DIR)/tmp/install"
+log_info "Will download binary release of etcd v${ETCD_VERSION} into ${Red}tmp/install${RCol}"
 
 mkdir -p $TMPDIR
 cd $TMPDIR
 
-## download everything
-#file="go1.1.2.$(go_version).tar.gz"
-file="go1.2.2.$(go_version).tar.gz"
-if [ ! -e $file ]; then
-  wget https://storage.googleapis.com/golang/$file
+## download etcd
+if [[ $(uname) =~ ^Darwin.* ]]; then
+  etcd_pkg_basename=etcd-v${ETCD_VERSION}-darwin-amd64
+  etcd_pkg_suffix=.zip
+  unpack_cmd='unzip'
 else
-  log_debug "$file already downloaded..."
+  etcd_pkg_basename=etcd-v${ETCD_VERSION}-linux-amd64
+  etcd_pkg_suffix=.tar.gz
+  unpack_cmd='tar zxvf'
 fi
 
-
-if [ ! -d 'go' ]; then
-  tar xfvz $file
+if [ ! -d ${etcd_pkg_basename} ]; then
+  etcd_package=${etcd_pkg_basename}${etcd_pkg_suffix}
+  curl -L  https://github.com/coreos/etcd/releases/download/v${ETCD_VERSION}/${etcd_package} -o ${etcd_package}
+  ${unpack_cmd} ${etcd_package}
 else
-  log_debug "go already uncompressed..."
+  log_debug "previous etcd package download found"
 fi
 
-if [ ! -d 'etcd-repo' ]; then
-  git clone https://github.com/coreos/etcd.git etcd-repo
-else
-  log_debug "etcd-repo already cloned, updating..."
-  cd etcd-repo && git fetch && cd ..
-fi
+cp ${etcd_pkg_basename}/etcd $TMPDIR
+cp ${etcd_pkg_basename}/etcdctl $TMPDIR
 
-
-export GOBIN=$TMPDIR/go/bin
-export GOROOT=$TMPDIR/go
-export PATH=$GOBIN:$PATH
-cd etcd-repo
-git checkout v0.1.2
-./build
-cd ..
-cp etcd-repo/etcd .
-log_info "etcd binary with version ${Red} $(./etcd -version) ${RCol}is ready in $TMPDIR!"
+log_info "etcd binary with version ${Red} $(./etcd --version | grep etcd) ${RCol}is ready in $TMPDIR!"
 log_info "copy to /usr/local/bin folder for system-wide installation "
 log_info "just execute: ${Red}cp $TMPDIR/etcd /usr/local/bin/etcd ${RCol}"

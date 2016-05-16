@@ -2,10 +2,11 @@ module Etcd
   class Observer
     include Etcd::Loggable
 
-    def initialize(client, prefix, handler)
+    def initialize(client, prefix, handler, options = {})
       @client  = client
       @prefix  = prefix
       @handler = handler
+      @options = options
       @index   = nil
       reset_logger!(Logger::DEBUG)
     end
@@ -15,7 +16,7 @@ module Etcd
       @thread = Thread.start do
         while @running
           logger.debug "********* watching #{@prefix} with index #{@index}"
-          @client.watch(@prefix, index: @index) do |value, key, info|
+          @client.watch(@prefix, @options.merge(index: @index)) do |value, key, info|
             if @running
               logger.debug "watch fired for #{@prefix} with #{info.inspect} "
               call_handler_in_needed(value, key, info)

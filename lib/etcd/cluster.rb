@@ -24,20 +24,14 @@ module Etcd
       end
 
       def status_uri(uri)
-        "#{uri}/v1/keys/_etcd/machines/"
+        "#{uri}/v2/members/"
       end
 
       def parse_cluster_status(cluster_status_response)
-        cluster_status_response.map do |attrs|
-          node_name = attrs[S_KEY].split(S_SLASH).last
-          urls      = attrs[S_VALUE].split(S_AND)
-          etcd      = urls.grep(/etcd/).first.split("=").last
-          raft      = urls.grep(/raft/).first.split("=").last
-          {:name => node_name, :raft => raft, :etcd => etcd}
+        cluster_status_response['members'].map do |attrs|
+          Etcd::Node.parse_node_data(attrs)
         end
       end
-
-
 
       # @example
       #   Etcd::Cluster.nodes_from_uri("http://127.0.0.1:4001")
@@ -50,8 +44,8 @@ module Etcd
       end
 
       def nodes_from_attributes(node_attributes)
-        res = node_attributes.map do |attr|
-          Etcd::Node.new(attr)
+        res = node_attributes.map do |attrs|
+          Etcd::Node.new(attrs)
         end
       end
 

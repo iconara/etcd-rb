@@ -1,3 +1,12 @@
+# Implements the etcd V2 client API
+#
+# Sample API requests/responses
+# $ curl -L http://127.0.0.1:4001/v2/keys
+# {"action":"get","node":{"dir":true,"nodes":[{"key":"/foo","value":"bar","modifiedIndex":22,"createdIndex":22}]}}
+#
+# $ curl -L http://127.0.0.1:4001/v2/keys/foo
+# {"action":"get","node":{"key":"/foo","value":"bar","modifiedIndex":22,"createdIndex":22}}
+
 module Etcd
   class Client
 
@@ -15,8 +24,8 @@ module Etcd
     def set(key, value, options={})
       body       = {:value => value}
       body[:ttl] = options[:ttl] if options[:ttl]
-      data       = request_data(:post, key_uri(key), body: body)
-      data[S_PREV_VALUE]
+      data       = request_data(:PUT, key_uri(key), body: body)
+      data[S_PREV_NODE][S_VALUE] if data && data[S_PREV_NODE]
     end
 
     # Gets the value or values for a key.
@@ -30,12 +39,12 @@ module Etcd
     def get(key)
       data = request_data(:get, key_uri(key))
       return nil unless data
-      if data.is_a?(Array)
-        data.each_with_object({}) do |e, acc|
-          acc[e[S_KEY]] = e[S_VALUE]
+      if nodes = data[S_NODE][S_NODES]
+        nodes.each_with_object({}) do |node, acc|
+          acc[node[S_KEY]] = node[S_VALUE]
         end
       else
-        data[S_VALUE]
+        data[S_NODE][S_VALUE]
       end
     end
 
@@ -58,7 +67,7 @@ module Etcd
     def update(key, value, expected_value, options={})
       body       = {:value => value, :prevValue => expected_value}
       body[:ttl] = options[:ttl] if options[:ttl]
-      data       = request_data(:post, key_uri(key), body: body)
+      data       = request_data(:put, key_uri(key), body: body)
       !! data
     end
 
@@ -71,7 +80,7 @@ module Etcd
     def delete(key)
       data = request_data(:delete, key_uri(key))
       return nil unless data
-      data[S_PREV_VALUE]
+      data[S_PREV_NODE][S_VALUE]
     end
 
     # Returns true if the specified key exists.
@@ -102,8 +111,8 @@ module Etcd
     def info(key)
       data = request_data(:get, uri(key))
       return nil unless data
-      if data.is_a?(Array)
-        data.each_with_object({}) do |d, acc|
+      if nodes = data[S_NODE][S_NODES]
+        nodes.each_with_object({}) do |d, acc|
           info = extract_info(d)
           info.delete(:action)
           acc[info[:key]] = info
@@ -140,14 +149,10 @@ module Etcd
     # @yieldparam [Hash] info the info for the key that changed
     # @return [Object] the result of the given block
     def watch(prefix, options={})
-      if options[:index]
-        parameters = {:index => options[:index]}
-        data       = request_data(:post, watch_uri(prefix), query: parameters)
-      else
-        data       = request_data(:get, watch_uri(prefix), query: {})
-      end
-
-      info         = extract_info(data)
+      options.merge!(wait: 'true')
+      options.delete(:index) if options.has_key?(:index) && options[:index].nil?
+      data = request_data(:get, watch_uri(prefix), query: options)
+      info = extract_info(data)
       yield info[:value], info[:key], info
     end
 
@@ -157,30 +162,35 @@ module Etcd
     end
 
     def watch_uri(key)
-      uri(key, S_WATCH)
+      uri(key, S_KEYS)
     end
 
 private
 
     def extract_info(data)
+      if data[S_NODE]
+        node = data[S_NODE]
+      else
+        node = data
+      end
+      return {} unless node
       info = {
-        :key   => data[S_KEY],
-        :value => data[S_VALUE],
-        :index => data[S_INDEX],
+        :key   => node[S_KEY],
+        :value => node[S_VALUE],
+        :index => node[S_INDEX],
       }
-      expiration_s          = data[S_EXPIRATION]
-      ttl                   = data[S_TTL]
-      previous_value        = data[S_PREV_VALUE]
+      expiration_s          = node[S_EXPIRATION]
+      ttl                   = node[S_TTL]
       action_s              = data[S_ACTION]
+      previous_node         = data[S_PREV_NODE]
       info[:expiration]     = Time.iso8601(expiration_s) if expiration_s
       info[:ttl]            = ttl if ttl
-      info[:new_key]        = data[S_NEW_KEY] if data.include?(S_NEW_KEY)
-      info[:dir]            = data[S_DIR] if data.include?(S_DIR)
-      info[:previous_value] = previous_value if previous_value
+      info[:dir]            = node[S_DIR] if node.include?(S_DIR)
+      info[:previous_value] = previous_node[S_VALUE] if previous_node
       info[:action]         = action_s.downcase.to_sym if action_s
+      info[:new_key]        = !data[S_PREV_NODE]
       info
     end
-
 
   end
 end

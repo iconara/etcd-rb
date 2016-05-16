@@ -5,10 +5,10 @@
 
 # Requirements
 
-  - A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
   - Linux/OSX OS
-  - to have a local Etcd binary, run
-    - `$ sh/install-etcd.sh`
+  - A modern Ruby, compatible with 1.9.3 or later. Continously tested with MRI 1.9.3, 2.0.0 and JRuby 1.7.x.
+  - Etcd 2.0.0 or later (only the V2 API is supported). To have a local etcd binary, run:
+      - `$ sh/install-etcd.sh`
 
 # Installation
 
