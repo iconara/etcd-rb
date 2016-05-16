@@ -37,7 +37,7 @@ class EtcdCluster
       end
     end
   end
-  
+
   def logs
     cmd = "tail -f tmp/etcd/node1.out tmp/etcd/node2.out tmp/etcd/node3.out"
     exec(cmd)
@@ -58,8 +58,8 @@ class EtcdCluster
 
   def start_node(num)
     node_name  = "node#{num}"
-    server_url = "http://127.0.0.1:#{SERVER_PORT_BASE + num}" 
-    client_url = "http://127.0.0.1:#{CLIENT_PORT_BASE + num}" 
+    server_url = "http://127.0.0.1:#{SERVER_PORT_BASE + num}"
+    client_url = "http://127.0.0.1:#{CLIENT_PORT_BASE + num}"
     all_nodes  = 1.upto(NODE_COUNT).map { |i| "node#{i}=http://127.0.0.1:#{SERVER_PORT_BASE + i}" }
 
     cmd = %Q(#{bin_path} --debug \

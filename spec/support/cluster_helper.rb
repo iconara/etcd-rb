@@ -13,7 +13,7 @@ module ClusterHelper
      ]
    }
   end
-  
+
   # cluster config hashes below map member client URLs to the leader client URL
 
   def healthy_cluster_config

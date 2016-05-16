@@ -19,5 +19,5 @@ module ClientHelper
     nodes.map{|node| node.status = :running}
     nodes.first.is_leader = true
     cluster
-  end  
+  end
 end
