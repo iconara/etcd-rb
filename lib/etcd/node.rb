@@ -9,10 +9,10 @@ module Etcd
 
     class << self
       def parse_node_data(attrs)
-        { 
-          :name => attrs["name"], 
-          :id => id = attrs["id"], 
-          :peer_urls => attrs["peerURLs"], 
+        {
+          :id          => attrs["id"],
+          :name        => attrs["name"],
+          :peer_urls   => attrs["peerURLs"],
           :client_urls => attrs["clientURLs"]
         }
       end
@@ -31,12 +31,12 @@ module Etcd
       raise ArgumentError, "Client URL is required!" unless opts[:client_urls] && opts[:client_urls].any?
       raise ArgumentError, "Node ID is required!" unless opts[:id]
     end
-    
+
     def update_status
       begin
         leader_data = request_data(:get, leader_uri)
-        @status    = :running
-        @is_leader = (leader_data["id"] == @id)
+        @status     = :running
+        @is_leader  = (leader_data["id"] == @id)
       rescue HTTPClient::TimeoutError, Errno::ECONNREFUSED => e
         @status = :down
       end
@@ -54,7 +54,7 @@ module Etcd
       print_status = @is_leader ? "leader" : status
       "#{name} (#{print_status})"
     end
-    
+
     def to_json
       { :name => name, :id => id, :client_urls => client_urls, :peer_urls => peer_urls }.to_json
     end
