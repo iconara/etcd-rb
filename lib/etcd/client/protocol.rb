@@ -77,8 +77,8 @@ module Etcd
     #
     # @param key [String] the key to remove
     # @return [String] the previous value, if any
-    def delete(key)
-      data = request_data(:delete, key_uri(key))
+    def delete(key, args={})
+      data = request_data(:delete, key_uri(key), args)
       return nil unless data
       data[S_PREV_NODE][S_VALUE]
     end

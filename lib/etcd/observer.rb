@@ -8,7 +8,6 @@ module Etcd
       @handler = handler
       @options = options
       @index   = nil
-      reset_logger!(Logger::DEBUG)
     end
 
     def run
