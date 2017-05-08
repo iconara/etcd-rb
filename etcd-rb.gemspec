@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.require_paths = %w(lib)
   s.bindir        = 'bin'
 
-  s.add_dependency 'httpclient', '~> 2.8.0'
+  s.add_dependency 'httpclient', '~> 2.3'
   s.add_dependency 'multi_json', '~> 1.7'
 
   s.platform = Gem::Platform::RUBY
