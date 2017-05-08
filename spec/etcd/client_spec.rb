@@ -113,11 +113,17 @@ module Etcd
     describe '#delete' do
       before do
         stub_request(:delete, "#{base_uri}/keys/foo").to_return(body: MultiJson.dump({'prevNode' => {'value' => 1}}))
+        stub_request(:delete, "#{base_uri}/keys/foo?recursive=true").to_return(body: MultiJson.dump({'prevNode' => {'value' => 1}}))
       end
 
       it 'sends a DELETE request to remove a key' do
         client.delete('/foo')
         WebMock.should have_requested(:delete, "#{base_uri}/keys/foo")
+      end
+
+      it 'sends a DELETE request to remove a key with args' do
+        client.delete('/foo', query: { recursive: true })
+        WebMock.should have_requested(:delete, "#{base_uri}/keys/foo?recursive=true")
       end
 
       it 'returns the previous value' do
