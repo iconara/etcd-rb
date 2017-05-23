@@ -12,7 +12,7 @@
 
 # Installation
 
-    gem install etcd-rb
+    gem install etcd-rb --pre
 
 # Quick start
 
